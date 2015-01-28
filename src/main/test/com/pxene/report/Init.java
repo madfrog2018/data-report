@@ -36,6 +36,8 @@ import org.apache.hadoop.hbase.mapreduce.TableMapper;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.mapreduce.Mapper.Context;
 
+import com.pxene.report.util.HBaseHelper;
+
 
 public class Init {
 	private static Configuration conf = HBaseHelper.getHBConfig("pxene01,pxene03,pxene04");

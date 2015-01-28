@@ -39,6 +39,8 @@ import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.GenericOptionsParser;
 import org.apache.log4j.Logger;
 
+import com.pxene.report.util.HBaseHelper;
+
 public class ReportMRHbase {
 	private static Configuration conf = HBaseHelper.getHBConfig("pxene01,pxene03,pxene04");
 	static Logger log = Logger.getLogger(ReportMRHbase.class);
@@ -77,7 +79,7 @@ public class ReportMRHbase {
 //        HFileOutputFormat2.configureIncrementalLoad(job,distTable);
         
         Scan scan = new Scan();     
-        scan.setTimeRange(1417609382670l, 1418609382670l);		
+        scan.setTimeRange(1417609382670l, 1418609382670l);	
 		TableMapReduceUtil.initTableMapperJob(src_table_name, scan, Map.class, ImmutableBytesWritable .class, Result.class, job);			
 		TableMapReduceUtil.initTableReducerJob("dsp_tanx_usefull", Reduce.class, job);		
 		
