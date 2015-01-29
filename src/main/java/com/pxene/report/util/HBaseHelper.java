@@ -10,7 +10,9 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
+import org.apache.hadoop.hbase.MasterNotRunningException;
 import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HConnection;
@@ -32,15 +34,18 @@ import org.apache.hadoop.hbase.filter.RowFilter;
 import org.apache.hadoop.hbase.filter.SubstringComparator;
 import org.apache.hadoop.hbase.filter.ValueFilter;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.log4j.Logger;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSet.Builder;
+import com.pxene.report.ReportMRHbase;
 
 /**
  * Used by the book examples to generate tables and fill them with test data.
  */
 public class HBaseHelper {
-
+	static Logger log = Logger.getLogger(HBaseHelper.class);
+	
 	public static byte[] INSERT_TIME = Bytes.toBytes(5);
 	private Configuration conf = null;
 	private HBaseAdmin admin = null;
@@ -88,6 +93,46 @@ public class HBaseHelper {
 			closeable.getConnection().close();
 		}
 	}
+	
+//		
+//	/**
+//	 * 新增表
+//	 */
+//	public  void creatTable(String tableName, String family) {		
+//		try {
+//			if (admin.tableExists(tableName)) {
+//				log.info("~~ table already exists!");
+//				deleteTable(tableName);
+//			}
+//			HTableDescriptor tableDesc = new HTableDescriptor(TableName.valueOf(tableName));
+//			tableDesc.addFamily(new HColumnDescriptor(family));
+//			admin.createTable(tableDesc);
+//
+//			log.info("~~ create table " + tableName + " ok.");
+//		} catch (Exception e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
+//	}
+//
+//	/**
+//	 * 删除表
+//	 */
+//	public  void deleteTable(String tableName) {
+//		try {
+//			admin.disableTable(tableName);
+//			admin.deleteTable(tableName);
+//			log.info("~~ delete table " + tableName + " ok.");
+//		} catch (MasterNotRunningException e) {
+//			e.printStackTrace();
+//		} catch (ZooKeeperConnectionException e) {
+//			e.printStackTrace();
+//		} catch (Exception e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
+//	}
+	
 	
 
 	/**

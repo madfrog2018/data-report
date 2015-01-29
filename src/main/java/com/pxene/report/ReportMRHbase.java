@@ -1,199 +1,212 @@
 package com.pxene.report;
 
-import java.io.File;
-import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.Iterator;
-import java.util.List;
-import java.util.StringTokenizer;
-
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
-import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.MasterNotRunningException;
+import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
-import org.apache.hadoop.hbase.client.HTable;
-import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
-import org.apache.hadoop.hbase.mapreduce.HFileOutputFormat;
-import org.apache.hadoop.hbase.mapreduce.HFileOutputFormat2;
-import org.apache.hadoop.hbase.mapreduce.LoadIncrementalHFiles;
-import org.apache.hadoop.hbase.mapreduce.TableMapReduceUtil;
-import org.apache.hadoop.hbase.mapreduce.TableMapper;
-import org.apache.hadoop.hbase.mapreduce.TableOutputFormat;
-import org.apache.hadoop.hbase.mapreduce.TableReducer;
-import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.hadoop.io.IntWritable;
-import org.apache.hadoop.io.Text;
-import org.apache.hadoop.io.Writable;
-import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
-import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
-import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.GenericOptionsParser;
 import org.apache.log4j.Logger;
 
+import com.pxene.report.job.UserJob;
 import com.pxene.report.util.HBaseHelper;
 
-public class ReportMRHbase {
+import org.apache.hadoop.util.Tool;
+import org.apache.hadoop.util.ToolRunner;
+
+public class ReportMRHbase extends Configured implements Tool{
+	
 	private static Configuration conf = HBaseHelper.getHBConfig("pxene01,pxene03,pxene04");
+	
 	static Logger log = Logger.getLogger(ReportMRHbase.class);
+	public static enum COUNTERS {ROWS};
+
 	
-	@SuppressWarnings("deprecation")
-	public static void main(String[] args) throws Exception {	
+	public static void main(String[] args) throws Exception {
+
+		ToolRunner.run(new ReportMRHbase(), args);		
 		
-		String tablename = "dsp_tanx_usefull";        
-//        creatTable(tablename,new String[]{"t","mdid","cg"});  
-        creatTable(tablename,"br"); 
-        
-        String src_table_name="dsp_tanx_bidrequest_log";
-         HTable    distTable=   new HTable(conf, tablename);
-        conf.set(TableOutputFormat.OUTPUT_TABLE, tablename);          
-        
-//        String[] otherArgs = new GenericOptionsParser(conf, args).getRemainingArgs();      
-//        String outPath = otherArgs[otherArgs.length-1];
-		 
-        Job job = new Job(conf,"tanx_usefull table");
-        job.setJarByClass(ReportMRHbase.class);  
-        job.setNumReduceTasks(3);  
-        job.setMapperClass(Map.class);  
-        job.setReducerClass(Reduce.class);  
-        job.setOutputKeyClass(ImmutableBytesWritable .class);
-        job.setOutputValueClass(Result.class);
-        
-        job.setMapOutputKeyClass(ImmutableBytesWritable.class);  
-        job.setMapOutputValueClass(Result.class);  
-                        
-//        job.setInputFormatClass(TextInputFormat.class);  
-//        job.setOutputFormatClass(TextOutputFormat.class);
-		log.info("~~ set mapper table is dsp_tanx_bidrequest_log  and reducer table is dsp_tanx_usefull");
-//	 	job.setNumReduceTasks(tasks);
-//        Path o = new Path(new Path(outPath) +File.separator + new SimpleDateFormat("yyyyMMddHHmmss").format(new Date()));       
-//		FileOutputFormat.setOutputPath(job,o);	
-//        HFileOutputFormat2.configureIncrementalLoad(job,distTable);
-        
-        Scan scan = new Scan();     
-        scan.setTimeRange(1417609382670l, 1418609382670l);	
-		TableMapReduceUtil.initTableMapperJob(src_table_name, scan, Map.class, ImmutableBytesWritable .class, Result.class, job);			
-		TableMapReduceUtil.initTableReducerJob("dsp_tanx_usefull", Reduce.class, job);		
-		
-		
-		 
-		log.info("~~ Job configure complete  , waitForCompletion...");
-		
-		int jobResult = job.waitForCompletion(true)?0:1; 
-//        
-//		log.info("~~mapreducer success , current jobResult is "+ jobResult +" and HFile path is "+o);
-//		
-//       // HFile入库到HBase              
-//		LoadIncrementalHFiles loader = new LoadIncrementalHFiles(conf);
-//		
-//		log.info("~~ current hfile path is  "+o);		
-//		
-//		loader.doBulkLoad(o,  new HTable(conf, tablename));	
-		
-		System.exit(jobResult);
 	}
 	
-	public static class Map extends TableMapper<ImmutableBytesWritable, Result> {   
+
+	@Override
+	public int run(String[] args) throws Exception {
+		String[] otherArgs = new GenericOptionsParser(conf, args).getRemainingArgs();
+		String src_table_name = otherArgs[otherArgs.length - 1]; // "dsp_tanx_bidrequest_log";
 		
-		public void map(ImmutableBytesWritable  key, Result  value, Context context) throws IOException, InterruptedException {	  			 
-			   
-			   context.write(key, value);  
-			   
-//			   String[] values = value.toString().split(",");  			   
-//			   
-//			   List<KeyValue> list = new ArrayList<KeyValue>();
-//					   
-//			   ImmutableBytesWritable rowkey = new ImmutableBytesWritable(value.toString().split(",")[0].getBytes());
-//			   			   
-//			   for (int i = 0; i < values.length; i++) {
-//				   String [] ss = values[i].toString().split("/");
-//				    System.out.println("");
-//				    String k = ss[0];  
-//				    String [] f = ss[1].split(":");
-//	                String family =f[0];  
-//	                String qualifier = f[1];  
-//	                String time =ss[2];
-//	                String value_str =ss[5];
-//	                
-//	                KeyValue kv = new KeyValue(Bytes.toBytes(k),  
-//	                        Bytes.toBytes(family), Bytes.toBytes(qualifier),  
-//	                        Long.parseLong(time), Bytes.toBytes(value_str));
-//	                
-//	                list.add(kv);
-//			   }		   	   
-//			   Iterator<KeyValue> it = list.iterator();  
-//	           while (it.hasNext()) {  
-//	               KeyValue kv = new KeyValue();  
-//	               kv = it.next();  
-//	               if (kv != null) {  
-//	                   context.write(rowkey, kv);  
-//	               }  
-//	           }  
-		 }
-	}
-	
-	public static class Reduce extends TableReducer<ImmutableBytesWritable,Result,ImmutableBytesWritable> {  
-	
-		@SuppressWarnings("deprecation")
-		public void reduce(Text key,Iterable<KeyValue> value,Context context){
-	        String k = key.toString();
-	        log.info("~~ current k========="+k);
-	        String time = k.substring(k.length()-13, k.length());
-   		 	
-	        log.info("~~ current time========="+time);
-	        
-	        Put putrow = new Put(k.getBytes());
-	        putrow.add("br".getBytes(), Bytes.toBytes("t"), Bytes.toBytes(time));
-	        
-	        for (KeyValue t:value) {
-	        	if(new String(t.getQualifier()).equals("mdid")){
-	        		 putrow.add("br".getBytes(), Bytes.toBytes("mdid"), t.getValue());
-	        		 
-	        	}else if(new String(t.getQualifier()).equals("cg")){
-	        		 putrow.add("br".getBytes(), Bytes.toBytes("cg"), t.getValue());
-	        		 
-	        	}
-	        }
-	        try {     
-	            context.write(new ImmutableBytesWritable(key.getBytes()), putrow);
-	            
-	        } catch (IOException e) {
-	            e.printStackTrace();
-	        } catch (InterruptedException e) {
-	            e.printStackTrace();
-	        }
-	    }
-	}
+		int jobResult = UserJob.countJob (conf,src_table_name);
 		
-	@SuppressWarnings("deprecation")
-	public static void creatTable(String tableName, String family){   
-        HBaseAdmin admin;
+		log.info("~~current Job status is : "+jobResult);
+		
+		return jobResult;
+	}
+//	
+//	public static int staticJob(String src_table_name) throws Exception{
+//		
+//		Job job = Job.getInstance(conf, "tanx_usefull table Job");
+//		job.setJarByClass(ReportMRHbase.class);
+//		job.setNumReduceTasks(0);
+//		job.setMapperClass(UserMapper.CountMap.class);
+////		job.setReducerClass(Reduce.class);
+//		job.setOutputFormatClass(NullOutputFormat.class);
+//		Scan scan = new Scan();
+//		
+////		scan.setTimeRange(startTime, endTime == 0 ? HConstants.LATEST_TIMESTAMP : endTime);		  		 
+//		    
+//		QualifierFilter fi =new QualifierFilter(CompareOp.EQUAL, new RegexStringComparator("mdid|cg"));
+////		DependentColumnFilter df = new De
+//		
+//		scan.setFilter(fi);
+//		TableMapReduceUtil.initTableMapperJob(src_table_name, scan, UserMapper.CountMap.class,ImmutableBytesWritable.class, KeyValue.class, job);
+////		TableMapReduceUtil.initTableReducerJob(dist_table_name, Reduce.class,job);
+//		
+//		log.info("~~ Job configure complete  , waitForCompletion...");
+//
+//		int jobResult = job.waitForCompletion(true) ? 0 : 1;
+//		log.info("~~current countJob result is : " + job.getCounters().findCounter(COUNTERS.ROWS).getValue());
+//		
+//		return jobResult;
+//	}
+	
+//	public static int countJob (String src_table_name) throws Exception{
+//		
+//		Job job = Job.getInstance(conf, "tanx_usefull table Job");
+//		job.setJarByClass(ReportMRHbase.class);
+//		job.setNumReduceTasks(0);
+//		job.setMapperClass(CountMapper.CountMap.class);
+//		job.setOutputFormatClass(NullOutputFormat.class);
+//		Scan scan = new Scan();
+//		
+////		scan.setTimeRange(startTime, endTime == 0 ? HConstants.LATEST_TIMESTAMP : endTime);		  		 
+//		    
+//		QualifierFilter fi =new QualifierFilter(CompareOp.EQUAL, new RegexStringComparator("mdid|cg"));
+////		DependentColumnFilter df = new De
+//		
+//		scan.setFilter(fi);
+//		TableMapReduceUtil.initTableMapperJob(src_table_name, scan, CountMapper.CountMap.class,ImmutableBytesWritable.class, KeyValue.class, job);
+//		
+//		log.info("~~ Job configure complete  , waitForCompletion...");
+//
+//		int jobResult = job.waitForCompletion(true) ? 0 : 1;
+//		log.info("~~current countJob result is : " + job.getCounters().findCounter(COUNTERS.ROWS).getValue());
+//		
+//		return jobResult;
+//	}
+	
+	
+//	public static class getKVMap extends TableMapper<ImmutableBytesWritable, KeyValue> {
+//	
+//		@Override
+//		protected void map(
+//				ImmutableBytesWritable key,
+//				Result value,
+//				Mapper<ImmutableBytesWritable, Result, ImmutableBytesWritable, KeyValue>.Context context)
+//				throws IOException, InterruptedException {
+//			
+//			NavigableMap<byte[], byte[]>  map=	 value.getFamilyMap(Bytes.toBytes("br"));
+//			for (byte[] qu  : map.keySet()) {
+//				log.info("~~ map current value is :"+ map.get(qu));
+//				context.write(
+//						key,
+//						new KeyValue(value.getRow(),qu, map.get(qu)));
+//			}
+//		}
+//	}
+	
+//	public static class CountMap extends
+//			TableMapper<ImmutableBytesWritable, KeyValue> {
+//
+//		@Override
+//		protected void map(
+//				ImmutableBytesWritable key,
+//				Result value,
+//				Mapper<ImmutableBytesWritable, Result, ImmutableBytesWritable, KeyValue>.Context context)
+//				throws IOException, InterruptedException {
+//
+//			context.getCounter(COUNTERS.ROWS).increment(1);
+//		}
+//	}
+
+//	public static class Reduce
+//			extends
+//			TableReducer<ImmutableBytesWritable, KeyValue, ImmutableBytesWritable> {
+//		@Override
+//		protected void reduce(
+//				ImmutableBytesWritable key,
+//				Iterable<KeyValue> values,
+//				Reducer<ImmutableBytesWritable, KeyValue, ImmutableBytesWritable, Mutation>.Context context)
+//				throws IOException, InterruptedException {
+//
+//			log.info("~~ current k=========" + key.get());
+//
+//			Put putrow = new Put(key.get());
+//			for (KeyValue t : values) {
+//				log.info("~~ current  value is" + t.getValueArray().toString());
+//				
+//				if(Bytes.toString(t.getQualifierArray()).equals("mdid")){
+//					putrow.add(t.getFamilyArray(), Bytes.toBytes("mdid"), t.getValueArray());
+//					log.info("~~ current mdid value is" + t.getValueArray().toString());
+//				}
+//				if(Bytes.toString(t.getQualifierArray()).equals("cg")){
+//					putrow.add(t.getFamilyArray(), Bytes.toBytes("cg"), t.getValueArray());
+//					log.info("~~ current mdid value is" + t.getValueArray().toString());
+//				}	
+//			}
+//			try {
+//				context.write(key, putrow);
+//
+//			} catch (IOException e) {
+//				e.printStackTrace();
+//			} catch (InterruptedException e) {
+//				e.printStackTrace();
+//			}
+//		}
+//	}
+
+	/**
+	 * 新增表
+	 */
+	public static void creatTable(String tableName, String family) {
+		HBaseAdmin admin;
 		try {
 			admin = new HBaseAdmin(conf);
-			
-			if (admin.tableExists(tableName)) { 
-				 log.info("~~ table already exists!");
-	            
-	         } else {   
-	             HTableDescriptor tableDesc = new HTableDescriptor(tableName);   
-	             //for(int i=0; i<familys.length; i++){   
-	                 tableDesc.addFamily(new HColumnDescriptor(family));   
-	             //}   
-	             admin.createTable(tableDesc);   
-	             
-	             log.info("~~ create table " + tableName + " ok.");  
-	         }  
+			if (admin.tableExists(tableName)) {
+				log.info("~~ table already exists!");
+				deleteTable(tableName);
+			}
+			HTableDescriptor tableDesc = new HTableDescriptor(TableName.valueOf(tableName));
+			tableDesc.addFamily(new HColumnDescriptor(family));
+			admin.createTable(tableDesc);
+
+			log.info("~~ create table " + tableName + " ok.");
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
-		}    
-     } 
+		}
+	}
+
+	/**
+	 * 删除表
+	 */
+	@SuppressWarnings("resource")
+	public static void deleteTable(String tableName) {
+		try {
+			HBaseAdmin admin = new HBaseAdmin(conf);
+			admin.disableTable(tableName);
+			admin.deleteTable(tableName);
+			log.info("~~ delete table " + tableName + " ok.");
+		} catch (MasterNotRunningException e) {
+			e.printStackTrace();
+		} catch (ZooKeeperConnectionException e) {
+			e.printStackTrace();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+
+	
+	
 }

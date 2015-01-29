@@ -16,6 +16,7 @@ import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.MasterNotRunningException;
+import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
@@ -47,29 +48,30 @@ public class Init {
 //		new Init().init();
 		//0a67f5230000547f00a60366001e5a631417609382670
 		//0a67f5230000547f00a60366001e5a631418929382670
-//		System.out.println(Long.parseLong("1422008811328"));
-		Date date =new Date(1417609382670l);
-		SimpleDateFormat sf =new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
-		System.out.println(sf.format(date));
-		System.out.println(String.valueOf(new Date().getTime()));
+		
+//		System.out.println(Bytes.toBytes("0a622824000054ad3ebc4f1d0066970a1420639932378"));
+//		Date date =new Date(1417609382670l);
+//		SimpleDateFormat sf =new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
+//		System.out.println(sf.format(date));
+//		System.out.println(String.valueOf(new Date().getTime()));
 	
 		Long lg = 1418628093267l;
 //		Long lg =  0a67f5230000547f00a60366001e5a631417609382670l;//dsp_tanx_bidrequest_log
 		Character ct = 0x02;
 		StringBuilder s = new StringBuilder();
 		s.append(ct).append(lg);
-//		System.out.println(s);
+		
 		
 		Long st = 1418628093267l;
 		Long e  = 1418628093267l;
 		
 		String rowKey ="0a67f5230000547f00a60366001e5a631417609382670";// "1422246914417";//
 //		System.out.println(rowKey.substring(rowKey.length()-13, rowKey.length()));
-//	  	creatTable("dsp_tanx_usefull2",new String[]{"time","deviceid","appcode"});
-//	  	addRecord("dsp_test_shs", String.valueOf(new Date().getTime()), new String[]{"start","name","end"}, "br",new String[]{"s4","test","e4"});
-//	  	deleteTable("dsp_test_shs");
-//    	deleteRow("dsp_test_shs",rowKey);  
-//		getAllRecord("dsp_test_shs",st,e);
+//	  	creatTable("dsp_tanx_usefull","br");
+//	  	addRecord("test_report", String.valueOf(new Date().getTime()), "br", "mdid","dddddmmmmm123");
+//	  	deleteTable("dsp_tanx_usefull");
+//    	deleteRow("test_report","rewre");  
+//		getAllRecord("dsp_tanx_usefull",st,e);
 //	  	getRow("dsp_tanx_bidrequest_log",rowKey);  
 //	  	QueryByCondition2("dsp_test_shs");
 //	  	QueryByCondition3("dsp_test_shs");
@@ -170,7 +172,7 @@ public class Init {
 	 /** 
      * 创建一张表 
      */   
-	public static void creatTable(String tableName, String[] familys){   
+	public static void creatTable(String tableName, String family){   
          HBaseAdmin admin;
 		try {
 			admin = new HBaseAdmin(conf);
@@ -178,10 +180,10 @@ public class Init {
 			if (admin.tableExists(tableName)) {   
 	             System.out.println("table already exists!");   
 	         } else {   
-	             HTableDescriptor tableDesc = new HTableDescriptor(tableName);   
-	             for(int i=0; i<familys.length; i++){   
-	                 tableDesc.addFamily(new HColumnDescriptor(familys[i]));   
-	             }   
+	             HTableDescriptor tableDesc = new HTableDescriptor(TableName.valueOf(tableName));   
+	                
+	             tableDesc.addFamily(new HColumnDescriptor(family));   
+	            
 	             admin.createTable(tableDesc);   
 	             System.out.println("create table " + tableName + " ok.");   
 	         }  
@@ -215,13 +217,13 @@ public class Init {
        * 插入一行记录 
        */   
        @SuppressWarnings("resource")
-	public static void addRecord (String tableName, String rowKey, String[] familys, String qualifier, String []values){   
+	public static void addRecord (String tableName, String rowKey, String family, String qualifier, String value){   
            try {   
                HTable table = new HTable(conf, tableName);   
                Put put = new Put(Bytes.toBytes(rowKey));   
-               for(int i=0; i<familys.length; i++){   
-            	   put.add(Bytes.toBytes(familys[i]),Bytes.toBytes(qualifier),Bytes.toBytes(values[i]));                       
-               }
+                
+               put.add(Bytes.toBytes(family),Bytes.toBytes(qualifier),Bytes.toBytes(value));                       
+              
                table.put(put);  
                System.out.println("insert recored " + rowKey + " to table " + tableName +" ok.");   
            } catch (Exception e) {   
