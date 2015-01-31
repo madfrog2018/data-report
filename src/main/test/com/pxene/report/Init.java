@@ -1,6 +1,8 @@
 package com.pxene.report;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.nio.charset.Charset;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -12,6 +14,7 @@ import java.util.StringTokenizer;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.KeyValue;
@@ -28,8 +31,11 @@ import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.filter.BinaryPrefixComparator;
+import org.apache.hadoop.hbase.filter.CompareFilter;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.FilterList;
+import org.apache.hadoop.hbase.filter.RowFilter;
 import org.apache.hadoop.hbase.filter.SingleColumnValueFilter;
 import org.apache.hadoop.hbase.filter.CompareFilter.CompareOp;
 import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
@@ -39,21 +45,45 @@ import org.apache.hadoop.mapreduce.Mapper.Context;
 
 import com.pxene.report.util.HBaseHelper;
 
-
+/** 
+ *  //过滤器
+    //1、FilterList代表一个过滤器列表
+	    //FilterList.Operator.MUST_PASS_ALL -->and
+	    //FilterList.Operator.MUST_PASS_ONE -->or
+	    //eg、FilterList list = new FilterList(FilterList.Operator.MUST_PASS_ONE);
+    //2、SingleColumnValueFilter
+    //3、ColumnPrefixFilter用于指定列名前缀值相等
+    //4、MultipleColumnPrefixFilter和ColumnPrefixFilter行为差不多，但可以指定多个前缀。
+    //5、QualifierFilter是基于列名的过滤器。
+    //6、RowFilter
+    //7、RegexStringComparator是支持正则表达式的比较器。
+    //8、SubstringComparator用于检测一个子串是否存在于值中，大小写不敏感。
+ *
+ */
 public class Init {
 	private static Configuration conf = HBaseHelper.getHBConfig("pxene01,pxene03,pxene04");
 //	private static Configuration conf = HBaseHelper.getHBConfig("slave2,slave1,master");
 	
+	
+	
 	public static void main(String[] args) throws IOException {
+		
+//		char a = 0x09;
+//		System.out.println("====="+a+"====");
 //		new Init().init();
 		//0a67f5230000547f00a60366001e5a631417609382670
-		//0a67f5230000547f00a60366001e5a631418929382670
+		//0a67f52d000054c83e09484c0064b66f1422409225939
 		
-//		System.out.println(Bytes.toBytes("0a622824000054ad3ebc4f1d0066970a1420639932378"));
+//		byte [] a = Bytes.toBytes("0a67f52d000054c83e0a482f007c442e1422409226323");
+//		String bs = getStringFromBytes(a);
+//		System.out.println(a+"======"+bs);
+		
+		
 //		Date date =new Date(1417609382670l);
+//		Date date2 =new Date(1422409225939l);
 //		SimpleDateFormat sf =new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
-//		System.out.println(sf.format(date));
-//		System.out.println(String.valueOf(new Date().getTime()));
+//		System.out.println(sf.format(date)+","+sf.format(date2));
+		System.out.println(String.valueOf(new Date().getTime()));
 	
 		Long lg = 1418628093267l;
 //		Long lg =  0a67f5230000547f00a60366001e5a631417609382670l;//dsp_tanx_bidrequest_log
@@ -65,72 +95,25 @@ public class Init {
 		Long st = 1418628093267l;
 		Long e  = 1418628093267l;
 		
-		String rowKey ="0a67f5230000547f00a60366001e5a631417609382670";// "1422246914417";//
-//		System.out.println(rowKey.substring(rowKey.length()-13, rowKey.length()));
-//	  	creatTable("dsp_tanx_usefull","br");
-//	  	addRecord("test_report", String.valueOf(new Date().getTime()), "br", "mdid","dddddmmmmm123");
-//	  	deleteTable("dsp_tanx_usefull");
+		String rowKey ="0a67f52d000054c83e09484c0064b66f1422409225939";// "1422246914417";//
+		System.out.println(rowKey.substring(32, rowKey.length()));
+//	  	creatTable("dsp_tanx_usefull2","br");
+//	  	addRecord("test_report", String.valueOf(new Date().getTime()), "br", new String [] {"cg"},new String [] {"60102"});
+//	  	deleteTable("test_report");
 //    	deleteRow("test_report","rewre");  
-//		getAllRecord("dsp_tanx_usefull",st,e);
+//		getAllRecord("test_report");
 //	  	getRow("dsp_tanx_bidrequest_log",rowKey);  
-//	  	QueryByCondition2("dsp_test_shs");
+//	  	QueryByCondition2("test_report");
 //	  	QueryByCondition3("dsp_test_shs");
 //	  	getTanxColumn();
 	}
+
 	
-	
-	
-//	public static class Map extends TableMapper<ImmutableBytesWritable, KeyValue> {   
-//		
-//		public void map(ImmutableBytesWritable  key, Result  value, Context context) throws IOException, InterruptedException {	   
-//			   StringTokenizer itr = new StringTokenizer(value.toString());
-//			   List<String> st = new ArrayList<String>();
-//			   
-//			   log.info("~~ current value========="+value);
-//			   log.info("~~ current itr========="+itr);
-//			   
-//			   ImmutableBytesWritable rowkey = new ImmutableBytesWritable(value.toString().split(" ")[0].getBytes());
-//			   
-//			   log.info("~~ current rowkey========="+rowkey);
-//			   
-//			   List<KeyValue> list = new ArrayList<KeyValue>();
-//			   int i = 0;
-//			   while (itr.hasMoreTokens()) {
-//				   if(itr.nextToken()!=null && itr.nextToken().length() > 0){
-//					  st.add(itr.nextToken());
-//					  //items[i] = itr.nextToken();
-//					  log.info("~~ current items========="+st.get(i));
-//					  i++;
-//					  if(i > 3){
-//						  if(st.get(3)!=null && st.size() > 3){
-//							  String [] s = st.get(1).split(":");
-//							  KeyValue kv = new KeyValue(Bytes.toBytes(st.get(0)),
-//									   Bytes.toBytes(s[0]), Bytes.toBytes(s[1]),
-//									   Long.parseLong(st.get(2).toString()), Bytes.toBytes(st.get(3)));
-//							  list.add(kv);
-//							 
-//							  log.info("~~ current kv========="+kv);
-//						  }
-//						  i = 0;
-//					  }
-//				   }
-//			   }
-//			   	   
-//			   Iterator<KeyValue> it = list.iterator();  
-//	           while (it.hasNext()) {  
-//	               KeyValue kv = new KeyValue();  
-//	               kv = it.next();  
-//	               if (kv != null) {  
-//	                   context.write(rowkey, kv);  
-//	               }  
-//	           }  
-//		 }
-//	}
 	
 	/**
 	 * 获取tanx表中的time= t ， deviceid（包括ios，android）= mdid ，appcode =cg ，数据放入到新建表"dsp_tanx_usefull"
 	 */
-	@SuppressWarnings({"resource", "rawtypes", "unchecked"})
+	@SuppressWarnings({"resource", "rawtypes", "unchecked", "deprecation"})
 	public static void getTanxColumn(){
 		try {  
             
@@ -217,13 +200,14 @@ public class Init {
        * 插入一行记录 
        */   
        @SuppressWarnings("resource")
-	public static void addRecord (String tableName, String rowKey, String family, String qualifier, String value){   
+	public static void addRecord (String tableName, String rowKey, String family, String [] qualifier, String [] value){   
            try {   
                HTable table = new HTable(conf, tableName);   
-               Put put = new Put(Bytes.toBytes(rowKey));   
-                
-               put.add(Bytes.toBytes(family),Bytes.toBytes(qualifier),Bytes.toBytes(value));                       
-              
+               Put put = new Put(Bytes.toBytes("0a67f5230000547f00a60366001e5a63"+rowKey));   
+               // 一个PUT代表一行数据，再NEW一个PUT表示第二行数据,每行一个唯一的ROWKEY，此处rowkey为put构造方法中传入的值  
+              for (int i = 0; i < qualifier.length; i++) {
+            	  put.add(Bytes.toBytes(family),Bytes.toBytes(qualifier[i]),Bytes.toBytes(value[i]));  
+              }  
                table.put(put);  
                System.out.println("insert recored " + rowKey + " to table " + tableName +" ok.");   
            } catch (Exception e) {   
@@ -231,6 +215,7 @@ public class Init {
            }   
       }  
        
+     
    /** 
     * 删除一行记录 
     */   
@@ -248,24 +233,60 @@ public class Init {
             e.printStackTrace();  
         }  
     }  
+    
+    /**
+     * 根据rowkey,过滤 批量删除  
+     * 
+     * 提取rowkey以01结尾数据
+		Filter filter = new RowFilter(CompareFilter.CompareOp.EQUAL,new RegexStringComparator(".*01$"));
+		
+		提取rowkey以包含201407的数据
+		Filter filter = new RowFilter(CompareFilter.CompareOp.EQUAL,new SubstringComparator("201407"));
+			
+		提取rowkey以123开头的数据
+		Filter filter = new RowFilter(CompareFilter.CompareOp.EQUAL,new BinaryPrefixComparator("123".getBytes()));
+     */
+      @SuppressWarnings({ "rawtypes", "unchecked", "resource" })
+	public static void batchDeleteByRow(String tablename){
+	   	   try {
+				HTable table = new HTable(conf,tablename);
+				
+				Scan s = new Scan();
+				Filter filter = new RowFilter(CompareFilter.CompareOp.EQUAL,new BinaryPrefixComparator("\0x02".getBytes()));
+				s.setFilter(filter);
+				
+				ResultScanner rs = table.getScanner(s);
+				List list = new ArrayList();
+				for (Result re : rs) {
+		            Delete d1 = new Delete(re.getRow());  
+		            list.add(d1);  
+				}
+				table.delete(list);
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+      }
+      
       
     /**
 	 * 通过rowkey获取数据
 	 */
-	@SuppressWarnings({"resource" })
-	public static void getRow(String tablename,String rowkey) throws IOException {			
+	@SuppressWarnings({"resource", "deprecation" })
+	public static void getRow(String tablename,String rowkey) throws IOException {		
+		HBaseHelper Hhelper = HBaseHelper.getHelper(conf);
 		try {
 			HTable table = new HTable(conf, tablename); 
 			 
             Get get = new Get(rowkey.getBytes());   
             Result rs = table.get(get);  
             System.out.println(rs.size());
-            for(KeyValue kv : rs.raw()){   
-                System.out.print(new String(kv.getRow()) + " " );   //rowley
-                System.out.print(new String(kv.getFamily()) + ":" );   //br
-                System.out.print(new String(kv.getQualifier()) + " " );   //column
+            for(Cell kv : rs.listCells()){   
+                System.out.print(Hhelper.getStringFromBytes(kv.getRow()) + " " );   //rowley
+                System.out.print(Hhelper.getStringFromBytes(kv.getFamilyArray()) + ":" );   //br
+                System.out.print(Hhelper.getStringFromBytes(kv.getQualifierArray()) + " " );   //column
                 System.out.print(kv.getTimestamp() + " " );   
-                System.out.println(new String(kv.getValue()));   //value
+                System.out.println(Hhelper.getStringFromBytes(kv.getValue()));   //value
             }  
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -277,12 +298,12 @@ public class Init {
      * 1.统计出总设备数量
      * 遍历所有结果数据，new list，如果该key的值保存在，则new，否者，list.size+1
      */   
-	@SuppressWarnings("resource")
-	public static void getAllRecord (String tableName,long start,long end) {   
+	@SuppressWarnings({ "resource", "deprecation" })
+	public static void getAllRecord (String tableName) {   
          try{   
              HTable table = new HTable(conf, tableName);   
              Scan s = new Scan(); 
-             s=HBaseHelper.setTimeRang(s,start,end);
+//             s=HBaseHelper.setTimeRang(s,start,end);
              ResultScanner ss = table.getScanner(s);   
              for(Result r:ss){   
                  for(KeyValue kv : r.raw()){   
@@ -301,15 +322,15 @@ public class Init {
 	/** 
      * 单条件按查询，查询多条记录 
      */  
-    @SuppressWarnings({ "resource" })
+    @SuppressWarnings({ "resource", "deprecation" })
 	public static void QueryByCondition2(String tableName) {  
   
         try {  
             HTablePool pool = new HTablePool(conf, 1000);  
             HTableInterface  table = (HTableInterface) pool.getTable(tableName);  
             Filter filter = new SingleColumnValueFilter(Bytes  
-                    .toBytes("name"), Bytes.toBytes("br"), CompareOp.EQUAL, Bytes  
-                    .toBytes("nihao")); // 当列column1的值为aaa时进行查询  
+                    .toBytes("br"), Bytes.toBytes("cg"), CompareOp.EQUAL, Bytes  
+                    .toBytes("6008")); // 当列column1的值为aaa时进行查询  
             Scan s = new Scan();  
             s.setFilter(filter);  
             ResultScanner rs = table.getScanner(s);  
@@ -330,7 +351,7 @@ public class Init {
      * 组合条件查询 
      * @param tableName 
      */  
-    @SuppressWarnings({"resource" })
+    @SuppressWarnings({"resource", "deprecation" })
 	public static void QueryByCondition3(String tableName) {  
   
         try {  
@@ -340,24 +361,25 @@ public class Init {
             List<Filter> filters = new ArrayList<Filter>();  
   
             Filter filter1 = new SingleColumnValueFilter(Bytes  
-                    .toBytes("name"), Bytes.toBytes("br"), CompareOp.EQUAL, Bytes  
+                    .toBytes("br"), Bytes.toBytes("name"), CompareOp.EQUAL, Bytes  
                     .toBytes("test"));  
             filters.add(filter1);  
   
             Filter filter2 = new SingleColumnValueFilter(Bytes  
-                    .toBytes("end"), Bytes.toBytes("br"), CompareOp.EQUAL, Bytes  
+                    .toBytes("br"), Bytes.toBytes("end"), CompareOp.EQUAL, Bytes  
                     .toBytes("e4"));  
             filters.add(filter2);  
   
             Filter filter3 = new SingleColumnValueFilter(Bytes  
-                    .toBytes("start"), Bytes.toBytes("br"), CompareOp.EQUAL, Bytes  
+                    .toBytes("br"), Bytes.toBytes("start"), CompareOp.EQUAL, Bytes  
                     .toBytes("s4"));  
             filters.add(filter3);  
-  
-            FilterList filterList1 = new FilterList(filters);  
-  
+            
+            //or
+            FilterList filterList = new FilterList(FilterList.Operator.MUST_PASS_ONE,filters);              
             Scan scan = new Scan();  
-            scan.setFilter(filterList1);  
+            scan.setFilter(filterList);  
+
             ResultScanner rs = table.getScanner(scan);  
             for (Result r : rs) {  
                 System.out.println("获得到rowkey:" + new String(r.getRow()));  
@@ -372,8 +394,9 @@ public class Init {
         }  
     }  
 	
-	
-	
+
+    
+    
 //	public void init() throws IOException {
 //		HBaseHelper hbasehelper = hbasehelper.gethelper(hbasehelper
 //				.gethbconfig("pxene01,pxene03,pxene04"));

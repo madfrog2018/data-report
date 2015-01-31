@@ -15,59 +15,37 @@ import org.apache.log4j.Logger;
 
 public class UserReducer {
 	static Logger log = Logger.getLogger(UserReducer.class);
+	static String family = "br";	
 	
-	
-	public static class UserCountReduce extends Reducer<Text, IntWritable, ImmutableBytesWritable, KeyValue>{
-		@Override
-		protected void reduce(
-				Text key,
-				Iterable<IntWritable> value,
-				Reducer<Text, IntWritable, ImmutableBytesWritable, KeyValue>.Context context)
-				throws IOException, InterruptedException {
-
-			
-			
-			
-		}
-		
-	}
-	
-	
-	public static class Reduce extends TableReducer<ImmutableBytesWritable, KeyValue, ImmutableBytesWritable> {
+	/**
+	 * reduce:
+	 * 合并相同的rowkey 统计出count（mdid）
+	 * 并保存到另一张中间表里
+	 *
+	 */
+	public static class ExportDataReduce extends TableReducer<Text, IntWritable, Text> {	
+		private IntWritable result = new IntWritable();
 		
 		@Override
-		protected void reduce(
-				ImmutableBytesWritable key,
-				Iterable<KeyValue> values,
-				Reducer<ImmutableBytesWritable, KeyValue, ImmutableBytesWritable, Mutation>.Context context)
+		protected void reduce(Text key, Iterable<IntWritable> value,
+				Reducer<Text, IntWritable, Text, Mutation>.Context context)
 				throws IOException, InterruptedException {
-		
-				log.info("~~ current k=========" + key.get());
 			
-				Put putrow = new Put(key.get());
-				for (KeyValue t : values) {
-					log.info("~~ current  value is" + t.getValueArray().toString());
-					
-					if(Bytes.toString(t.getQualifierArray()).equals("mdid")){
-						putrow.add(t.getFamilyArray(), Bytes.toBytes("mdid"), t.getValueArray());
-						log.info("~~ current mdid value is" + t.getValueArray().toString());
-					}
-					if(Bytes.toString(t.getQualifierArray()).equals("cg")){
-						putrow.add(t.getFamilyArray(), Bytes.toBytes("cg"), t.getValueArray());
-						log.info("~~ current mdid value is" + t.getValueArray().toString());
-					}	
-				}
-				try {
-					context.write(key, putrow);
+			//相同rowkey合并总是
+			int sum = 0;
+		    for (IntWritable val : value) {
+		      sum += val.get();
+		    }
+		    result.set(sum);
 			
-				} catch (IOException e) {
-					e.printStackTrace();
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
-			}
+		    //保存到 另一张表里
+			Put putrow = new Put(key.getBytes());
+			putrow.add(Bytes.toBytes(family), Bytes.toBytes("count"),  Bytes.toBytes(result.toString()));
+			
+			context.write(key, putrow);
 		}
-	
+		
+	}	
 	
 	
 }
