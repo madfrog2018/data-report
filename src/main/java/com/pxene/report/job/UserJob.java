@@ -1,5 +1,7 @@
 package com.pxene.report.job;
 
+import java.io.IOException;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Scan;
@@ -16,35 +18,39 @@ import org.apache.log4j.Logger;
 
 import com.pxene.report.ReportMRHbase;
 import com.pxene.report.ReportMRHbase.COUNTERS;
+import com.pxene.report.map.UserMapper.AppAndCategoryMap;
+import com.pxene.report.map.UserMapper.AppUsedCountMap;
+import com.pxene.report.map.UserMapper.ConvertToMysql_appcategoryMap;
+import com.pxene.report.map.UserMapper.ConvertToMysql_appusedcountMap;
 import com.pxene.report.map.UserMapper.CountMap;
-import com.pxene.report.map.UserMapper.ExportDataMap;
-import com.pxene.report.reduce.UserReducer.ExportDataReduce;
+import com.pxene.report.map.UserMapper.DataByTimeMap;
+import com.pxene.report.map.UserMapper.DeviceIdCountMap;
+import com.pxene.report.reduce.UserReducer.AppAndCategoryReduce;
 
 public class UserJob {
 	static Logger log = Logger.getLogger(UserJob.class);	
 	
 	/**
-	 * 获取  rowkey = time+cg+mdid  存到中间表里
+	 * 获取 rowkey = appId-appcategory-package 存到中间表里
 	 * @param src_table_name ：原表
-	 * @param dist_table_name ：目标表
+	 * @param dist_table_name ：目标表 dsp_tanx_app_category
 	 * @return
 	 * @throws Exception
 	 */
-	public static int ExportDataJob(Configuration conf,String src_table_name,String dist_table_name) throws Exception{
+	public static int AppAndCategoryJob(Configuration conf,String src_table_name,String dist_table_name) throws Exception{
 		
-		Job job = Job.getInstance(conf, "tanx_usefull table Job");
+		Job job = Job.getInstance(conf, "dsp_tanx_app_category table Job");
 		job.setJarByClass(ReportMRHbase.class);
 		job.setNumReduceTasks(3);
-		job.setMapperClass(ExportDataMap.class);
-		job.setReducerClass(ExportDataReduce.class);
+		job.setMapperClass(AppAndCategoryMap.class);
+		job.setReducerClass(AppAndCategoryReduce.class);
 	
 		Scan scan = new Scan();			
-//		scan.setTimeRange(NumberUtils.toLong("1417609382670l"), NumberUtils.toLong("1422409225939l"));
-		QualifierFilter fi =new QualifierFilter(CompareOp.EQUAL, new RegexStringComparator("mdid|cg"));				
+		QualifierFilter fi =new QualifierFilter(CompareOp.EQUAL, new RegexStringComparator("pid|cg|mpn"));				
 		scan.setFilter(fi);
 		
-		TableMapReduceUtil.initTableMapperJob(src_table_name, scan, ExportDataMap.class,Text.class, IntWritable.class, job);
-		TableMapReduceUtil.initTableReducerJob(dist_table_name, ExportDataReduce.class,job);
+		TableMapReduceUtil.initTableMapperJob(src_table_name, scan, AppAndCategoryMap.class,Text.class, IntWritable.class, job);
+		TableMapReduceUtil.initTableReducerJob(dist_table_name, AppAndCategoryReduce.class,job);
 				 
 		log.info("~~ Job configure complete  , waitForCompletion...");
 
@@ -54,6 +60,105 @@ public class UserJob {
 		return jobResult;
 		
 	}
+	
+	/**
+	 * 取出hbase中dsp_tanx_app_category表数据，导入到mysql里
+	 */
+	public static int ConvertToMysql_appcategoryJob (Configuration conf,String src_table_name) throws Exception{
+		Job job = Job.getInstance(conf, "Convert data To Mysql Job");
+		job.setJarByClass(ReportMRHbase.class);
+		job.setNumReduceTasks(3);
+		job.setMapperClass(ConvertToMysql_appcategoryMap.class);
+		job.setOutputFormatClass(NullOutputFormat.class);
+		
+		Scan scan = new Scan();		  		 		    
+		QualifierFilter fi =new QualifierFilter(CompareOp.EQUAL, new RegexStringComparator("count"));				
+		scan.setFilter(fi);
+		TableMapReduceUtil.initTableMapperJob(src_table_name, scan, ConvertToMysql_appcategoryMap.class, Text.class, IntWritable.class, job);
+		
+		int mysqlJob = job.waitForCompletion(true) ? 0 : 1;
+		log.info("~~current ConvertToMysqlJob counters are : " + job.getCounters().findCounter(COUNTERS.ROWS).getValue());
+		return mysqlJob;
+	}
+	
+	
+	
+	/**
+	 * 每天app被访问的次数
+	 * 目标表：dsp_tanx_appused_count
+	 */
+	public static int AppUsedCountJob(Configuration conf,String src_table_name,String dist_table_name) throws Exception{
+		Job job = Job.getInstance(conf, "dsp_tanx_appused_count table Job");
+		job.setJarByClass(ReportMRHbase.class);
+		job.setNumReduceTasks(3);
+		job.setMapperClass(AppUsedCountMap.class);
+		job.setReducerClass(AppAndCategoryReduce.class);
+	
+		Scan scan = new Scan();			
+		QualifierFilter fi =new QualifierFilter(CompareOp.EQUAL, new RegexStringComparator("pid"));				
+		scan.setFilter(fi);
+		
+		TableMapReduceUtil.initTableMapperJob(src_table_name, scan, AppUsedCountMap.class,Text.class, IntWritable.class, job);
+		TableMapReduceUtil.initTableReducerJob(dist_table_name, AppAndCategoryReduce.class,job);
+				 
+		log.info("~~ Job configure complete  , waitForCompletion...");
+
+		int jobResult = job.waitForCompletion(true) ? 0 : 1;
+		log.info("~~ job complete  status is "+ jobResult);
+		
+		return jobResult;
+		
+	}
+		
+	/**
+	 * 取出hbase中dsp_tanx_appused_count表数据，导入到mysql里
+	 */
+	public static int ConvertToMysql_appusedcountJob (Configuration conf,String src_table_name) throws Exception{
+		Job job = Job.getInstance(conf, "Convert data To Mysql Job");
+		job.setJarByClass(ReportMRHbase.class);
+		job.setNumReduceTasks(3);
+		job.setMapperClass(ConvertToMysql_appusedcountMap.class);
+		job.setOutputFormatClass(NullOutputFormat.class);
+		
+		Scan scan = new Scan();		  		 		    
+		QualifierFilter fi =new QualifierFilter(CompareOp.EQUAL, new RegexStringComparator("count"));				
+		scan.setFilter(fi);
+		TableMapReduceUtil.initTableMapperJob(src_table_name, scan, ConvertToMysql_appusedcountMap.class, Text.class, IntWritable.class, job);
+		
+		int mysqlJob = job.waitForCompletion(true) ? 0 : 1;
+		log.info("~~current ConvertToMysqlJob counters are : " + job.getCounters().findCounter(COUNTERS.ROWS).getValue());
+		return mysqlJob;
+	}
+	
+	
+	/**
+	 * 每天访问app的人数
+	 * 目标表：dsp_tanx_deviceId_count
+	 */
+	public static int DeviceIdCountJob(Configuration conf,String src_table_name,String dist_table_name) throws Exception{
+		Job job = Job.getInstance(conf, "dsp_tanx_deviceId_count table Job");
+		job.setJarByClass(ReportMRHbase.class);
+		job.setNumReduceTasks(3);
+		job.setMapperClass(DeviceIdCountMap.class);
+		job.setReducerClass(AppAndCategoryReduce.class);
+	
+		Scan scan = new Scan();			
+		QualifierFilter fi =new QualifierFilter(CompareOp.EQUAL, new RegexStringComparator("pid|mdid"));				
+		scan.setFilter(fi);
+		
+		TableMapReduceUtil.initTableMapperJob(src_table_name, scan, DeviceIdCountMap.class,Text.class, IntWritable.class, job);
+		TableMapReduceUtil.initTableReducerJob(dist_table_name, AppAndCategoryReduce.class,job);
+				 
+		log.info("~~ Job configure complete  , waitForCompletion...");
+
+		int jobResult = job.waitForCompletion(true) ? 0 : 1;
+		log.info("~~ job complete  status is "+ jobResult);
+		
+		return jobResult;
+		
+	}
+	
+	
 	
 	/**
 	 * 计数job
@@ -80,5 +185,5 @@ public class UserJob {
 		return jobResult;
 	}
 	
-
+	
 }

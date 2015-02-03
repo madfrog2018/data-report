@@ -75,6 +75,7 @@ public class HBaseHelper {
 	public static Configuration getHBConfig(String quorum) {
 		Configuration config = HBaseConfiguration.create();
 		config.set("hbase.zookeeper.quorum", quorum);
+//		config.set("zookeeper.znode.parent", "/hbase_wins");
 		return config;
 	}
 

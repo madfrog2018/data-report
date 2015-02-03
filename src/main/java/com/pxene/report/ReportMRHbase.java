@@ -2,20 +2,12 @@ package com.pxene.report;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
-import org.apache.hadoop.hbase.HColumnDescriptor;
-import org.apache.hadoop.hbase.HTableDescriptor;
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.MasterNotRunningException;
-import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.hbase.ZooKeeperConnectionException;
-import org.apache.hadoop.hbase.client.HBaseAdmin;
-import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.hadoop.util.GenericOptionsParser;
 import org.apache.log4j.Logger;
 
 import com.pxene.report.job.UserJob;
 import com.pxene.report.util.HBaseHelper;
 
+import org.apache.hadoop.util.GenericOptionsParser;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
@@ -26,7 +18,9 @@ import org.apache.hadoop.util.ToolRunner;
  */
 public class ReportMRHbase extends Configured implements Tool{
 	
-	private static Configuration conf = HBaseHelper.getHBConfig("pxene01,pxene03,pxene04");
+	private static Configuration conf = HBaseHelper.getHBConfig("pxene01,pxene02,pxene03,pxene04,pxene05");
+
+//	private static Configuration conf = HBaseHelper.getHBConfig("slave2,slave1,master");
 	
 	static Logger log = Logger.getLogger(ReportMRHbase.class);
 	public static enum COUNTERS {ROWS};
@@ -42,22 +36,44 @@ public class ReportMRHbase extends Configured implements Tool{
 	@Override
 	public int run(String[] args) throws Exception {
 		String[] otherArgs = new GenericOptionsParser(conf, args).getRemainingArgs();
-		String src_table_name = otherArgs[otherArgs.length - 1]; // "dsp_tanx_bidrequest_log";
-		String dist_table_name = otherArgs[otherArgs.length - 2];
+		
+		String dist_table_name = otherArgs[otherArgs.length - 1];
+		String src_table_name = otherArgs[otherArgs.length - 2]; // "dsp_tanx_bidrequest_log";		
 		
 		HBaseHelper Hhelper = HBaseHelper.getHelper(conf);
-		
 		Hhelper.creatTable(dist_table_name,family);
 		
-		int jobResult = UserJob.ExportDataJob (conf,src_table_name,dist_table_name);
+//		int jobResult = UserJob.AppAndCategoryJob (conf,src_table_name,dist_table_name);		
+//		log.info("~~current ExportDataJob status is : "+ jobResult);
+				
+		//将jobResult结果导入到mysql中
+//		int ConToMysqlJob = UserJob.ConvertToMysql_appcategoryJob(conf, dist_table_name);
+//		log.info("~~current Convert data ToMysql Job status is : "+ ConToMysqlJob);
 		
-		log.info("~~current ExportDataJob status is : "+ jobResult);
 		
-		int countJob = UserJob.countJob(conf, dist_table_name);
+		//每天app被访问的次数
+		int appUsedCountJob = UserJob.AppUsedCountJob(conf, src_table_name,dist_table_name);		
+		log.info("~~current appCountJob status is : "+ appUsedCountJob);
 		
+		//将appCountJob结果导入到mysql中
+//		int ConToMysqlJob = UserJob.ConvertToMysql_appusedcountJob(conf, dist_table_name);
+//		log.info("~~current Convert data ToMysql Job status is : "+ ConToMysqlJob);
+	
+		
+		//每天访问app的人数
+//		int mdidCountJob = UserJob.DeviceIdCountJob(conf, src_table_name,dist_table_name);		
+//		log.info("~~current appCountJob status is : "+ mdidCountJob);
+		
+		
+
+					
+		
+		//----计数job
+		int countJob = UserJob.countJob(conf, dist_table_name);		
 		log.info("~~current countJob status is : "+ countJob);
 		
-		return jobResult;
+		
+		return countJob;
 	}
 
 
