@@ -2,7 +2,9 @@ package com.pxene.report.reduce;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
@@ -63,9 +65,9 @@ public class UserReducer {
 				Reducer<Text, Text, Text, Mutation>.Context context)
 				throws IOException, InterruptedException {
 									
-			List<String> list = new ArrayList<String> ();
+			List<byte []> list = new ArrayList<byte []> ();			
 		    for (Text val : value) {
-		      list.add(val.toString());
+	    		 list.add(Bytes.toBytes(val.toString()));
 		    }
 		    result.set(list.size());
 			
@@ -75,7 +77,6 @@ public class UserReducer {
 			
 			context.write(key, putrow);
 		}
-		
 	}
 
 	

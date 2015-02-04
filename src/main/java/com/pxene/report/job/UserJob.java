@@ -22,10 +22,13 @@ import com.pxene.report.map.UserMapper.AppAndCategoryMap;
 import com.pxene.report.map.UserMapper.AppUsedCountMap;
 import com.pxene.report.map.UserMapper.ConvertToMysql_appcategoryMap;
 import com.pxene.report.map.UserMapper.ConvertToMysql_appusedcountMap;
+import com.pxene.report.map.UserMapper.ConvertToMysql_deviceIdcountMap;
 import com.pxene.report.map.UserMapper.CountMap;
 import com.pxene.report.map.UserMapper.DataByTimeMap;
 import com.pxene.report.map.UserMapper.DeviceIdCountMap;
+import com.pxene.report.map.UserMapper.DeviceIdCount_monthMap;
 import com.pxene.report.reduce.UserReducer.AppAndCategoryReduce;
+import com.pxene.report.reduce.UserReducer.DeviceIdCountReduce;
 
 public class UserJob {
 	static Logger log = Logger.getLogger(UserJob.class);	
@@ -132,30 +135,65 @@ public class UserJob {
 	
 	
 	/**
-	 * 每天访问app的人数
+	 * 每周 /月 访问app的人数
 	 * 目标表：dsp_tanx_deviceId_count
 	 */
 	public static int DeviceIdCountJob(Configuration conf,String src_table_name,String dist_table_name) throws Exception{
-		Job job = Job.getInstance(conf, "dsp_tanx_deviceId_count table Job");
-		job.setJarByClass(ReportMRHbase.class);
-		job.setNumReduceTasks(3);
-		job.setMapperClass(DeviceIdCountMap.class);
-		job.setReducerClass(AppAndCategoryReduce.class);
-	
+		//周
+//		Job week_job = Job.getInstance(conf, "dsp_tanx_deviceId_week_count table Job");
+//		week_job.setJarByClass(ReportMRHbase.class);
+//		week_job.setNumReduceTasks(3);
+//		week_job.setMapperClass(DeviceIdCountMap.class);
+//		week_job.setReducerClass(DeviceIdCountReduce.class);
+//	
 		Scan scan = new Scan();			
 		QualifierFilter fi =new QualifierFilter(CompareOp.EQUAL, new RegexStringComparator("pid|mdid"));				
 		scan.setFilter(fi);
+//		
+//		TableMapReduceUtil.initTableMapperJob(src_table_name, scan, DeviceIdCountMap.class,Text.class, Text.class, week_job);
+//		TableMapReduceUtil.initTableReducerJob(dist_table_name, DeviceIdCountReduce.class,week_job);
+//				 
+//		log.info("~~ jobResult configure complete  , waitForCompletion...");
+//
+//		int week_jobResult = week_job.waitForCompletion(true) ? 0 : 1;
+//		log.info("~~ jobResult complete  status is "+ week_jobResult);
 		
-		TableMapReduceUtil.initTableMapperJob(src_table_name, scan, DeviceIdCountMap.class,Text.class, IntWritable.class, job);
-		TableMapReduceUtil.initTableReducerJob(dist_table_name, AppAndCategoryReduce.class,job);
+		//月
+		Job month_job = Job.getInstance(conf, "dsp_tanx_deviceId_month_count table Job");
+		month_job.setJarByClass(ReportMRHbase.class);
+		month_job.setNumReduceTasks(3);
+		month_job.setMapperClass(DeviceIdCount_monthMap.class);
+		month_job.setReducerClass(DeviceIdCountReduce.class);	
+		
+		TableMapReduceUtil.initTableMapperJob(src_table_name, scan, DeviceIdCount_monthMap.class,Text.class, Text.class, month_job);
+		TableMapReduceUtil.initTableReducerJob(dist_table_name, DeviceIdCountReduce.class,month_job);
 				 
-		log.info("~~ Job configure complete  , waitForCompletion...");
-
-		int jobResult = job.waitForCompletion(true) ? 0 : 1;
-		log.info("~~ job complete  status is "+ jobResult);
+		log.info("~~ month_jobResult configure complete  , waitForCompletion...");
 		
-		return jobResult;
+		int month_jobResult = month_job.waitForCompletion(true) ? 0 : 1;		
+		log.info("~~ month_jobResult complete  status is "+ month_jobResult);
 		
+		return month_jobResult;
+	}
+	
+	/**
+	 * 取出hbase中dsp_tanx_deviceId_count表数据，导入到mysql里
+	 */
+	public static int ConvertToMysql_deviceIdcountJob (Configuration conf,String src_table_name) throws Exception{
+		Job job = Job.getInstance(conf, "Convert data To Mysql Job");
+		job.setJarByClass(ReportMRHbase.class);
+		job.setNumReduceTasks(3);
+		job.setMapperClass(ConvertToMysql_deviceIdcountMap.class);
+		job.setOutputFormatClass(NullOutputFormat.class);
+		
+		Scan scan = new Scan();		  		 		    
+		QualifierFilter fi =new QualifierFilter(CompareOp.EQUAL, new RegexStringComparator("count"));				
+		scan.setFilter(fi);
+		TableMapReduceUtil.initTableMapperJob(src_table_name, scan, ConvertToMysql_deviceIdcountMap.class, Text.class, IntWritable.class, job);
+		
+		int mysqlJob = job.waitForCompletion(true) ? 0 : 1;
+		log.info("~~current ConvertToMysqlJob counters are : " + job.getCounters().findCounter(COUNTERS.ROWS).getValue());
+		return mysqlJob;
 	}
 	
 	

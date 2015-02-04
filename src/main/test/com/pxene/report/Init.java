@@ -3,8 +3,10 @@ package com.pxene.report;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -43,6 +45,7 @@ import org.apache.hadoop.hbase.mapreduce.TableMapper;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.mapreduce.Mapper.Context;
 
+import com.pxene.report.util.DBUtil;
 import com.pxene.report.util.HBaseHelper;
 
 /** 
@@ -61,12 +64,12 @@ import com.pxene.report.util.HBaseHelper;
  *
  */
 public class Init {
-	private static Configuration conf = HBaseHelper.getHBConfig("pxene01,pxene03,pxene04");
+	private static Configuration conf = HBaseHelper.getHBConfig("pxene01,pxene02,pxene03,pxene04,pxene05");
 //	private static Configuration conf = HBaseHelper.getHBConfig("slave2,slave1,master");
 	
 	
 	
-	public static void main(String[] args) throws IOException {
+	public static void main(String[] args) throws Exception {
 		
 //		char a = 0x09;
 //		System.out.println("====="+a+"====");
@@ -74,40 +77,98 @@ public class Init {
 		//0a67f5230000547f00a60366001e5a631417609382670
 		//0a67f52d000054c83e09484c0064b66f1422409225939
 		
-//		byte [] a = Bytes.toBytes("0a67f52d000054c83e0a482f007c442e1422409226323");
-//		String bs = getStringFromBytes(a);
-//		System.out.println(a+"======"+bs);
+		DBUtil db = new DBUtil();
+//		db.insertToAppusedCount(1420074000000l, "1006", 5);			
 		
+		String sd="2015-01-05 00:00:00"; 
+		String sd2="2015-01-05";
+//		String sd3="2014-12-02 00:00:00";
+//		String sd4="2015-01-01 03:00:00";
+//		String sd5="2015-01-01 04:00:00";
+//		String sd6="2015-01-01 05:00:00";
+//		String sd7="2015-01-01 06:00:00";
+//		String sd8="2015-01-01 23:00:00";
+//		String sd9="2015-01-01 23:59:59";
+//		String sd10="2015-01-01 24:00:00";
+		//3600000
+//		Date date =new Date(1420041600000l);1420074000000
+		Date date2 =new Date(1417449600000l);
+		SimpleDateFormat sf =new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+		SimpleDateFormat sf2 =new SimpleDateFormat("yyyy-MM-dd");
+//		System.out.println(sf.parse(sd).getTime()+"\n"+sf2.parse(sd2).getTime());//+"\n"+(sf.parse(sd3).getTime()-sf.parse(sd2).getTime()));
 		
-//		Date date =new Date(1417609382670l);
-//		Date date2 =new Date(1422409225939l);
-//		SimpleDateFormat sf =new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
-//		System.out.println(sf.format(date)+","+sf.format(date2));
-		System.out.println(String.valueOf(new Date().getTime()));
-	
+//		System.out.println(sf.parse(sd).getTime()+"\n"+sf.parse(sd2).getTime()+"\n"+sf.parse(sd3).getTime()+"\n"+sf.parse(sd4).getTime()
+//				+"\n"+sf.parse(sd5).getTime()+"\n"+sf.parse(sd6).getTime()+"\n"+sf.parse(sd7).getTime()+"\n"+sf.parse(sd8).getTime()
+//				+"\n"+sf.parse(sd9).getTime()+"\n"+sf.parse(sd10).getTime()+"\n"+(sf.parse(sd10).getTime()-sf.parse(sd).getTime()));
+		
+//		System.out.println(sf.parse(sf.format(date2))+"==="+sf.parse(sf.format(date2)).getHours());
+		
+		String t = "1420041600000";
+		Date d =new Date(Long.parseLong(t));
+		
+		long milltime = sf.parse(sf.format(date2)).getTime();
+		System.out.println(d+","+sf2.format(d));//Sat Jan 24 16:18:23 CST 2015
+		
 		Long lg = 1418628093267l;
 //		Long lg =  0a67f5230000547f00a60366001e5a631417609382670l;//dsp_tanx_bidrequest_log
 		Character ct = 0x02;
 		StringBuilder s = new StringBuilder();
-		s.append(ct).append(lg);
+		s.append(ct).append(lg);//1422087503000
 		
 		
-		Long st = 1418628093267l;
-		Long e  = 1418628093267l;
+//		Long st = 1418628093267l;
+//		Long e  = 1418628093267l;
 		
 		String rowKey ="0a67f52d000054c83e09484c0064b66f1422409225939";// "1422246914417";//
-		System.out.println(rowKey.substring(32, rowKey.length()));
-//	  	creatTable("dsp_tanx_usefull2","br");
-//	  	addRecord("test_report", String.valueOf(new Date().getTime()), "br", new String [] {"cg"},new String [] {"60102"});
-//	  	deleteTable("test_report");
-//    	deleteRow("test_report","rewre");  
+//		System.out.println(rowKey.substring(32, rowKey.length()));
+//	  	creatTable("testn","br");
+//	  	addRecord("test_report", String.valueOf(1420089560000l), "br", new String [] {"cg"},new String [] {"60102"});
+//	  	deleteTable("dsp_tanx_bytime");
+		
+//		Character prefix = 0x02;
+//		StringBuilder sb = new StringBuilder();
+//		sb.append(prefix).append("1418628093267");
+//    	deleteRow("dsp_tanx_bidrequest_log",sb.toString());  
+    	
 //		getAllRecord("test_report");
 //	  	getRow("dsp_tanx_bidrequest_log",rowKey);  
-//	  	QueryByCondition2("test_report");
+//	  	QueryByCondition2("dsp_tanx_bidrequest_log");
 //	  	QueryByCondition3("dsp_test_shs");
+//		batchDeleteByRow("dsp_tanx_bidrequest_log");
 //	  	getTanxColumn();
+		
+		String ss="1422087503570";
+		
+		convertWeekByDate(ss);
 	}
+	
+	private static void convertWeekByDate(String timestamp) throws ParseException {  	    		
+		SimpleDateFormat sdf=new SimpleDateFormat("yyyy-MM-dd"); //设置时间格式           
+        Date d =new Date(Long.parseLong(timestamp));       
+        Date time = sdf.parse(sdf.format(d));    
+        
+        Calendar cal = Calendar.getInstance();  
+        cal.setTime(time);  
+        
+        cal.set(Calendar.DAY_OF_MONTH, 1);
+//        //判断要计算的日期是否是周日，如果是则减一天计算周六的，否则会出问题，计算到下一周去了  
+//        int dayWeek = cal.get(Calendar.DAY_OF_WEEK);//获得当前日期是一个星期的第几天  
+//        if(1 == dayWeek) {  
+//           cal.add(Calendar.DAY_OF_MONTH, -1);  
+//        }  
+////        System.out.println("要计算日期为:"+sdf.format(cal.getTime())); //输出要计算日期  
+//
+//        cal.setFirstDayOfWeek(Calendar.MONDAY);//设置一个星期的第一天，按中国的习惯一个星期的第一天是星期一  
+//        int day = cal.get(Calendar.DAY_OF_WEEK);//获得当前日期是一个星期的第几天  
+//        cal.add(Calendar.DATE, cal.getFirstDayOfWeek()-day);//根据日历的规则，给当前日期减去星期几与一个星期第一天的差值   
 
+        String imptimeBegin = sdf.format(cal.getTime());  
+        System.out.println(cal.getTime().getTime()+"所在周星期一的日期："+imptimeBegin);  
+
+//        cal.add(Calendar.DATE, 6);  
+//        String imptimeEnd = sdf.format(cal.getTime());  
+//        System.out.println("所在周星期日的日期："+imptimeEnd);  
+	}  
 	
 	
 	/**
@@ -252,9 +313,10 @@ public class Init {
 				HTable table = new HTable(conf,tablename);
 				
 				Scan s = new Scan();
-				Filter filter = new RowFilter(CompareFilter.CompareOp.EQUAL,new BinaryPrefixComparator("\0x02".getBytes()));
-				s.setFilter(filter);
-				
+//				Filter filter = new RowFilter(CompareFilter.CompareOp.EQUAL,new BinaryPrefixComparator("\0x02".getBytes()));
+//				s.setFilter(filter);
+
+//				s.setStartRow()
 				ResultScanner rs = table.getScanner(s);
 				List list = new ArrayList();
 				for (Result re : rs) {
@@ -329,8 +391,8 @@ public class Init {
             HTablePool pool = new HTablePool(conf, 1000);  
             HTableInterface  table = (HTableInterface) pool.getTable(tableName);  
             Filter filter = new SingleColumnValueFilter(Bytes  
-                    .toBytes("br"), Bytes.toBytes("cg"), CompareOp.EQUAL, Bytes  
-                    .toBytes("6008")); // 当列column1的值为aaa时进行查询  
+                    .toBytes("br"), Bytes.toBytes("mdid"), CompareOp.EQUAL, Bytes  
+                    .toBytes("AQ/u+gFpNPLcd8iRYNwtg")); // 当列column1的值为aaa时进行查询  
             Scan s = new Scan();  
             s.setFilter(filter);  
             ResultScanner rs = table.getScanner(s);  

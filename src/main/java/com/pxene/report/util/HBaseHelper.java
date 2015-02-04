@@ -56,6 +56,7 @@ public class HBaseHelper {
 	public static final byte[] FAMILY_URL = Bytes.toBytes("url");
 	public static final String TYPE_FIX = "fixed";
 	public static final String SPILE="#";
+	
 	protected HBaseHelper(Configuration conf) throws IOException {
 		this.conf = conf;
 		this.admin = new HBaseAdmin(conf);
@@ -67,8 +68,8 @@ public class HBaseHelper {
 
 	public static Configuration getDefaultHBConfig() {
 		Configuration config = HBaseConfiguration.create();
-		config.set("hbase.zookeeper.quorum",
-				ConfigUtil.getByKey("hbase.zookeeper.quorum"));
+		config.set("hbase.zookeeper.quorum","pxene01,pxene02,pxene03,pxene04,pxene05");
+				//ConfigUtil.getByKey("hbase.zookeeper.quorum"));
 		return config;
 	}
 

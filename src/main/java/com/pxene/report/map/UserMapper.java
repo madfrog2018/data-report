@@ -18,6 +18,7 @@ import org.apache.log4j.Logger;
 
 import com.pxene.report.ReportMRHbase.COUNTERS;
 import com.pxene.report.util.DBUtil;
+import com.pxene.report.util.DateUtil;
 
 public class UserMapper {
 
@@ -27,9 +28,10 @@ public class UserMapper {
 	private final static String rowkeyseparator = ";";
 	
 	static DBUtil db = new DBUtil();
+	static DateUtil dateUtil  = new DateUtil();
 	
 	/** 
-	 *rowkey = appId;appcategory;package (pid|cg|mpn)
+	 *rowkey = appId;appcategory;package (pid|cg|mpn) 
 	 */
 	public static class AppAndCategoryMap extends TableMapper<Text, IntWritable> {
 		private final static IntWritable one = new IntWritable(1);
@@ -115,12 +117,10 @@ public class UserMapper {
 				Mapper<ImmutableBytesWritable, Result, Text, IntWritable>.Context context)
 				throws IOException, InterruptedException {
 			
-			String rowKey ="";//Bytes.toString(key.get());
+			String rowKey =Bytes.toString(key.get());
 			List<KeyValue> list = value.list();	
 			String pidValue = "";
 			for (KeyValue kv : list) {
-				rowKey = Bytes.toString(kv.getRow());
-				
 				String qu = Bytes.toString(kv.getQualifier());	
 				if(qu.equals("pid")){
 					pidValue = Bytes.toString(kv.getValue());	
@@ -128,23 +128,22 @@ public class UserMapper {
 			}
 			String currentDay = "";
 			if(rowKey.length()>32){
-				String time = rowKey.substring(32, rowKey.length()).trim();
-				log.info("~~current time is "+ time);
+				String time = rowKey.substring(32, rowKey.length()).trim();				
 				try {
-//					if(time.matches("[0-9]{1,}")){	
+					if(time.matches("[0-9]{1,}")){	
 						SimpleDateFormat sf =new SimpleDateFormat("yyyy-MM-dd");	
-						long milltime = sf.parse(time).getTime();
-						currentDay = String.valueOf(milltime);								
-//					}
+						Date d =new Date(Long.parseLong(time));
+						currentDay = Long.toString(sf.parse(sf.format(d)).getTime());	
+						
+						Text resultKey = new Text();
+						resultKey.set(currentDay+rowkeyseparator+pidValue);								
+						context.write(resultKey,one);
+						
+					}
 				} catch (ParseException e) {
-						// TODO Auto-generated catch block
 						e.printStackTrace();
 				}
-			}
-			
-			Text resultKey = new Text();
-			resultKey.set(currentDay+rowkeyseparator+pidValue);								
-			context.write(resultKey,one);					
+			}					
 		}
 	}
 	
@@ -163,24 +162,22 @@ public class UserMapper {
 			
 			List<KeyValue> list = value.list();	
 			String count = Bytes.toString(list.get(0).getValue());
+			
 			String rowkey = Bytes.toString(key.get()).trim();
 			String [] data = rowkey.split(rowkeyseparator, -1);
 			
-			db.insertToAppusedCount(Long.parseLong(data[0].trim()),data[1].trim(), Integer.valueOf(count));
-			
-			context.getCounter(COUNTERS.ROWS).increment(1);
-			
+			db.insertToAppusedCount(Long.parseLong(data[0].trim()),data[1].trim(), Integer.valueOf(count));									
 		}	
 	}
 	
 	
 	/**
-	 * 每天 访问每个app的人数
+	 * 每周 访问每个app的人数
 	 *key:time;pid
 	 *value:mdid
 	 */
 	public static class DeviceIdCountMap extends TableMapper<Text, Text>{
-			
+		
 		@SuppressWarnings("deprecation")
 		@Override
 		protected void map(
@@ -189,45 +186,102 @@ public class UserMapper {
 				Mapper<ImmutableBytesWritable, Result, Text, Text>.Context context)
 				throws IOException, InterruptedException {
 			
-			String rowKey ="";//Bytes.toString(key.get());
+			String rowKey = Bytes.toString(key.get());
 			List<KeyValue> list = value.list();	
 			
 			String pidValue = "";
 			String mdidValue = "";
 			for (KeyValue kv : list) {
-				rowKey = Bytes.toString(kv.getRow());
-				
 				String qu = Bytes.toString(kv.getQualifier());	
 				if(qu.equals("pid")){
 					pidValue = Bytes.toString(kv.getValue());	
 				}else if(qu.equals("mdid")){
 					mdidValue = Bytes.toString(kv.getValue());	
 				}
-				
 			}
 			
-			String currentDay = "";
 			if(rowKey.length()>32){
 				String time = rowKey.substring(32, rowKey.length());
 				try {
-					if(time.matches("[0-9]{1,}")){	
-						SimpleDateFormat sf =new SimpleDateFormat("yyyy-MM-dd");	
-						long milltime = sf.parse(time).getTime();
-						currentDay = String.valueOf(milltime);								
+					if(time.matches("[0-9]{1,}")){
+						Text resultKey = new Text();
+						resultKey.set(dateUtil.convertWeekByTime(time)+rowkeyseparator+pidValue);								
+						context.write(resultKey,new Text(Bytes.toBytes(mdidValue)));	
+						
 					}
 				} catch (ParseException e) {
-						// TODO Auto-generated catch block
 						e.printStackTrace();
 				}
-			}
+			}			
+		}
+	}
+	
+	/**
+	 * 每月 访问每个app的人数
+	 *key:time;pid
+	 *value:mdid
+	 */
+	public static class DeviceIdCount_monthMap extends TableMapper<Text, Text>{
+		
+		@SuppressWarnings("deprecation")
+		@Override
+		protected void map(
+				ImmutableBytesWritable key,
+				Result value,
+				Mapper<ImmutableBytesWritable, Result, Text, Text>.Context context)
+				throws IOException, InterruptedException {
 			
-			Text resultKey = new Text();
-			resultKey.set(currentDay+rowkeyseparator+pidValue);								
-			context.write(resultKey,new Text(mdidValue));					
+//			String rowKey = Bytes.toString(key.get());
+//			List<KeyValue> list = value.list();	
+			
+			String pidValue = "";
+			String mdidValue = "";
+			for (KeyValue kv : value.list()) {
+//				String qu = Bytes.toString(kv.getQualifier());	
+				if((Bytes.toString(kv.getQualifier())).equals("pid")){
+					pidValue = Bytes.toString(kv.getValue());	
+				}else if((Bytes.toString(kv.getQualifier())).equals("mdid")){
+					mdidValue = Bytes.toString(kv.getValue());	
+				}
+			}
+			if(Bytes.toString(key.get()).length()>32){
+				String time = (Bytes.toString(key.get())).substring(32, (Bytes.toString(key.get())).length());
+				try {
+					if(time.matches("[0-9]{1,}")){
+						Text resultKey = new Text();
+						resultKey.set(dateUtil.convertMonthByTime(time)+rowkeyseparator+pidValue);								
+						context.write(resultKey,new Text(Bytes.toBytes(mdidValue)));	
+					}
+				} catch (ParseException e) {
+						e.printStackTrace();
+				}
+			}			
 		}
 	}
 		
+	/**
+	 * 数据dsp_tanx_deviceId_count插入到mysql dsp_t_app_deviceId_count表里
+	 */
+	public static class ConvertToMysql_deviceIdcountMap extends TableMapper<Text, IntWritable>{
+				
+		@SuppressWarnings("deprecation")
+		@Override
+		protected void map(
+				ImmutableBytesWritable key,
+				Result value,
+				Mapper<ImmutableBytesWritable, Result, Text, IntWritable>.Context context)
+				throws IOException, InterruptedException {
 			
+			List<KeyValue> list = value.list();	
+			String count = Bytes.toString(list.get(0).getValue());
+			String rowkey = Bytes.toString(key.get()).trim();
+			String [] data = rowkey.split(rowkeyseparator, -1);
+			
+			db.insertToDeviceIdCount(Long.parseLong(data[0].trim()),data[1].trim(), Integer.valueOf(count));					
+		}	
+	}		
+	
+	
 	
 	/**
 	 * 计数map
@@ -244,6 +298,8 @@ public class UserMapper {
 				context.getCounter(COUNTERS.ROWS).increment(1);
 			}
 	}
+	
+	
 	
 	
 	/**
