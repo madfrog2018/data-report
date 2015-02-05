@@ -59,7 +59,7 @@ public class DateUtil {
 	 * 根据给出的时间戳字符串 得出 当天0点的时间戳字符串
 	 * @throws ParseException 
 	 */
-	public static String convertDayByTime(String timestamp) throws ParseException{
+	public String convertDayByTime(String timestamp) throws ParseException{
 		
 		SimpleDateFormat sf =new SimpleDateFormat("yyyy-MM-dd");	
 		Date d =new Date(Long.parseLong(timestamp));

@@ -21,12 +21,12 @@ public class UserReducer {
 	
 	
 	/**
-	 * reduce:
+	 * reduce:sum
 	 * rowkey = appId;appcategory;package 
 	 * rowkey = time;appId
 	 *
 	 */
-	public static class AppAndCategoryReduce extends TableReducer<Text, IntWritable, Text> {	
+	public static class SumReduce extends TableReducer<Text, IntWritable, Text> {	
 		private IntWritable result = new IntWritable();
 		
 		@Override
@@ -40,8 +40,7 @@ public class UserReducer {
 		      sum += val.get();
 		    }
 		    result.set(sum);
-			
-		    //保存到 另一张表里
+					    
 			Put putrow = new Put(key.getBytes());
 			putrow.add(Bytes.toBytes(family), Bytes.toBytes("count"),  Bytes.toBytes(result.toString()));
 			
@@ -52,28 +51,21 @@ public class UserReducer {
 	
 	
 	/**
-	 * reduce:
-	 * rowkey = time;pid
-	 * count:去重复的人数
+	 * reduce:distinct
+	 * rowkey = time;pid;mdid
+	 * count:1
 	 *
 	 */	
-	public static class DeviceIdCountReduce extends TableReducer<Text, Text, Text> {	
-		private IntWritable result = new IntWritable();
+	public static class DistinctReduce extends TableReducer<Text, IntWritable, Text> {	
+		private IntWritable one = new IntWritable(1);
 		
 		@Override
-		protected void reduce(Text key, Iterable<Text> value,
-				Reducer<Text, Text, Text, Mutation>.Context context)
+		protected void reduce(Text key, Iterable<IntWritable> value,
+				Reducer<Text, IntWritable, Text, Mutation>.Context context)
 				throws IOException, InterruptedException {
-									
-			List<byte []> list = new ArrayList<byte []> ();			
-		    for (Text val : value) {
-	    		 list.add(Bytes.toBytes(val.toString()));
-		    }
-		    result.set(list.size());
-			
-		    //保存到 另一张表里
+					    
 			Put putrow = new Put(key.getBytes());
-			putrow.add(Bytes.toBytes(family), Bytes.toBytes("count"),  Bytes.toBytes(result.toString()));
+			putrow.add(Bytes.toBytes(family), Bytes.toBytes("count"),  Bytes.toBytes(one.toString()));
 			
 			context.write(key, putrow);
 		}

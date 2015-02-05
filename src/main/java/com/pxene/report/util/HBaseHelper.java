@@ -57,6 +57,8 @@ public class HBaseHelper {
 	public static final String TYPE_FIX = "fixed";
 	public static final String SPILE="#";
 	
+	public static final String host="pxene01,pxene02,pxene03,pxene04,pxene05";//slave2,slave1,master
+	
 	protected HBaseHelper(Configuration conf) throws IOException {
 		this.conf = conf;
 		this.admin = new HBaseAdmin(conf);
@@ -68,7 +70,7 @@ public class HBaseHelper {
 
 	public static Configuration getDefaultHBConfig() {
 		Configuration config = HBaseConfiguration.create();
-		config.set("hbase.zookeeper.quorum","pxene01,pxene02,pxene03,pxene04,pxene05");
+		config.set("hbase.zookeeper.quorum",host);
 				//ConfigUtil.getByKey("hbase.zookeeper.quorum"));
 		return config;
 	}
@@ -76,7 +78,6 @@ public class HBaseHelper {
 	public static Configuration getHBConfig(String quorum) {
 		Configuration config = HBaseConfiguration.create();
 		config.set("hbase.zookeeper.quorum", quorum);
-//		config.set("zookeeper.znode.parent", "/hbase_wins");
 		return config;
 	}
 

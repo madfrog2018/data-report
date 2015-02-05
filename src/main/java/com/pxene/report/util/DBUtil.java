@@ -43,6 +43,7 @@ public class DBUtil {
 	}
 	
 	/**
+	 * app app分类关系表
 	 * appId;appcategory;package
 	 */
 	public  void insertToAppcategory(String appId,String catcode,String apppackage){
@@ -75,11 +76,11 @@ public class DBUtil {
 				e.printStackTrace();
 			}
 		}
-        
 	}
 	
 	
 	/**
+	 * app使用次数表
 	 * appId;time;count
 	 */
 	public  void insertToAppusedCount(long time,String appId,int count){
@@ -112,10 +113,10 @@ public class DBUtil {
 				e.printStackTrace();
 			}
 		}
-        
 	}
 
 	/**
+	 * app使用人数表
 	 * appId;time;count
 	 */
 	public  void insertToDeviceIdCount(long time,String appId,int count){
@@ -148,7 +149,45 @@ public class DBUtil {
 				e.printStackTrace();
 			}
 		}
-        
 	}
-
+	
+	/**
+	 * app使用天数表
+	 * dsp_t_app_usedDays_count
+	 */
+	public  void insertToUsedDaysCount(long time,String appId,int count){
+		Connection conn =getConnection();
+		PreparedStatement  pstmt = null;
+        try {
+			conn.setAutoCommit(false);
+			String sql = "insert into dsp_t_app_usedDays_count (appId,time,count) values (?,?,?)";
+			pstmt =  conn.prepareStatement(sql);
+			pstmt.setString(1, appId);
+			pstmt.setLong(2, time);
+			pstmt.setInt(3, count);
+			
+			int res = pstmt.executeUpdate();
+			if(res == 0){
+				log.info("~~ insert error row is :"+ time+"-"+appId+"-"+count);
+			}
+	        conn.commit();
+	        pstmt.close();
+		} catch (SQLException e) {
+			
+			e.printStackTrace();
+			log.info("SQLException  ===:"+ e.getMessage());
+			
+		}finally{
+			 try {
+				conn.close();
+			} catch (SQLException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+	}
+	
+	
+	
+	
 }

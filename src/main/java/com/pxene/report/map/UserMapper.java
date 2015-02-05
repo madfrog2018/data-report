@@ -172,26 +172,26 @@ public class UserMapper {
 	
 	
 	/**
-	 * 每周 访问每个app的人数
-	 *key:time;pid
-	 *value:mdid
+	 * 每周/月  访问每个app的人
+	 *key:time;pid;mdid
+	 *value:1
+	 *return：去重复
 	 */
-	public static class DeviceIdCountMap extends TableMapper<Text, Text>{
-		
+	public static class DeviceIdCountMap extends TableMapper<Text, IntWritable>{
+		private final static IntWritable one = new IntWritable(1);
 		@SuppressWarnings("deprecation")
 		@Override
 		protected void map(
 				ImmutableBytesWritable key,
 				Result value,
-				Mapper<ImmutableBytesWritable, Result, Text, Text>.Context context)
+				Mapper<ImmutableBytesWritable, Result, Text, IntWritable>.Context context)
 				throws IOException, InterruptedException {
 			
-			String rowKey = Bytes.toString(key.get());
-			List<KeyValue> list = value.list();	
-			
+			String rowKey = Bytes.toString(key.get());						
 			String pidValue = "";
 			String mdidValue = "";
-			for (KeyValue kv : list) {
+			
+			for (KeyValue kv : value.list()) {
 				String qu = Bytes.toString(kv.getQualifier());	
 				if(qu.equals("pid")){
 					pidValue = Bytes.toString(kv.getValue());	
@@ -204,9 +204,15 @@ public class UserMapper {
 				String time = rowKey.substring(32, rowKey.length());
 				try {
 					if(time.matches("[0-9]{1,}")){
+						//周
 						Text resultKey = new Text();
-						resultKey.set(dateUtil.convertWeekByTime(time)+rowkeyseparator+pidValue);								
-						context.write(resultKey,new Text(Bytes.toBytes(mdidValue)));	
+						resultKey.set(dateUtil.convertWeekByTime(time)+rowkeyseparator+pidValue+rowkeyseparator+Bytes.toBytes(mdidValue));								
+						context.write(resultKey,one);	
+						
+						//月
+						Text resultKey2 = new Text();
+						resultKey2.set(dateUtil.convertMonthByTime(time)+rowkeyseparator+pidValue+rowkeyseparator+Bytes.toBytes(mdidValue));								
+						context.write(resultKey2,one);
 						
 					}
 				} catch (ParseException e) {
@@ -214,51 +220,31 @@ public class UserMapper {
 				}
 			}			
 		}
-	}
-	
+	}	
 	/**
-	 * 每月 访问每个app的人数
+	 * 每周/月  访问每个app的人数
 	 *key:time;pid
-	 *value:mdid
+	 *value:1
+	 *return：sum
 	 */
-	public static class DeviceIdCount_monthMap extends TableMapper<Text, Text>{
-		
-		@SuppressWarnings("deprecation")
+	public static class DeviceIdCount_weekMap extends TableMapper<Text, IntWritable>{
+		private final static IntWritable one = new IntWritable(1);
+
 		@Override
 		protected void map(
 				ImmutableBytesWritable key,
 				Result value,
-				Mapper<ImmutableBytesWritable, Result, Text, Text>.Context context)
-				throws IOException, InterruptedException {
+				Mapper<ImmutableBytesWritable, Result, Text, IntWritable>.Context context)
+				throws IOException, InterruptedException {		
 			
-//			String rowKey = Bytes.toString(key.get());
-//			List<KeyValue> list = value.list();	
-			
-			String pidValue = "";
-			String mdidValue = "";
-			for (KeyValue kv : value.list()) {
-//				String qu = Bytes.toString(kv.getQualifier());	
-				if((Bytes.toString(kv.getQualifier())).equals("pid")){
-					pidValue = Bytes.toString(kv.getValue());	
-				}else if((Bytes.toString(kv.getQualifier())).equals("mdid")){
-					mdidValue = Bytes.toString(kv.getValue());	
-				}
-			}
-			if(Bytes.toString(key.get()).length()>32){
-				String time = (Bytes.toString(key.get())).substring(32, (Bytes.toString(key.get())).length());
-				try {
-					if(time.matches("[0-9]{1,}")){
-						Text resultKey = new Text();
-						resultKey.set(dateUtil.convertMonthByTime(time)+rowkeyseparator+pidValue);								
-						context.write(resultKey,new Text(Bytes.toBytes(mdidValue)));	
-					}
-				} catch (ParseException e) {
-						e.printStackTrace();
-				}
-			}			
+			String [] keys = (Bytes.toString(key.get())).split(rowkeyseparator, -1);
+		
+			Text resultKey = new Text();
+			resultKey.set(keys[0]+rowkeyseparator+keys[1]);								
+			context.write(resultKey,one);			
 		}
 	}
-		
+			
 	/**
 	 * 数据dsp_tanx_deviceId_count插入到mysql dsp_t_app_deviceId_count表里
 	 */
@@ -282,6 +268,107 @@ public class UserMapper {
 	}		
 	
 	
+	/** 
+	 *rowkey = time(一天的0点);appid;mdid
+	 *同app，同用户，同一天去重复次数
+	 */
+	public static class AppUsed_DistinctDay_JobMap extends TableMapper<Text, IntWritable> {
+		private final static IntWritable one = new IntWritable(1);
+		
+		@SuppressWarnings("deprecation")
+		@Override
+		protected void map(
+				ImmutableBytesWritable key,
+				Result value,
+				Mapper<ImmutableBytesWritable, Result, Text, IntWritable>.Context context)
+				throws IOException, InterruptedException {
+			
+			String rowKey = Bytes.toString(key.get());	
+			String pidValue = "";
+			String mdidValue = "";
+			
+			for (KeyValue kv : value.list()) {
+				String qu = Bytes.toString(kv.getQualifier());	
+				
+				if(qu.equals("pid")){
+					pidValue = Bytes.toString(kv.getValue());	
+				}else if(qu.equals("mdid")){
+					mdidValue = Bytes.toString(kv.getValue());	
+				}
+			}
+			if(rowKey.length()>32){
+				String time = rowKey.substring(32, rowKey.length());						
+				try {
+					if(time.matches("[0-9]{1,}")){		
+						Text resultKey = new Text();
+						resultKey.set(dateUtil.convertDayByTime(time)+rowkeyseparator+pidValue+rowkeyseparator+mdidValue);
+						
+						context.write(resultKey,one);
+					}
+				} catch (ParseException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}	
+			}
+		}
+	}
+	/** 
+	 *rowkey = time(周一的0点);appid
+	 *合并出一周 使用同一个app的个数 ，即是天数
+	 */
+	public static class AppUsed_CountDays_JobMap extends TableMapper<Text, IntWritable> {
+		private final static IntWritable one = new IntWritable(1);
+		
+		@Override
+		protected void map(
+				ImmutableBytesWritable key,
+				Result value,
+				Mapper<ImmutableBytesWritable, Result, Text, IntWritable>.Context context)
+				throws IOException, InterruptedException {
+			
+			String rowKey = Bytes.toString(key.get());	
+			String [] keys = rowKey.split(rowkeyseparator,-1);										
+			try {
+				if(keys[0].matches("[0-9]{1,}")){	
+					//周
+					Text resultKey = new Text();
+					resultKey.set(dateUtil.convertWeekByTime(keys[0])+rowkeyseparator+keys[1]);				
+					context.write(resultKey,one);
+					
+					//月
+					Text resultKey2 = new Text();
+					resultKey2.set(dateUtil.convertMonthByTime(keys[0])+rowkeyseparator+keys[1]);				
+					context.write(resultKey2,one);
+				}
+			} catch (ParseException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}	
+		}
+	}
+	
+	/**
+	 * 数据dsp_tanx_deviceId_count插入到mysql dsp_t_app_deviceId_count表里
+	 */
+	public static class ConvertToMysql_usedDayscountMap extends TableMapper<Text, IntWritable>{
+				
+		@SuppressWarnings("deprecation")
+		@Override
+		protected void map(
+				ImmutableBytesWritable key,
+				Result value,
+				Mapper<ImmutableBytesWritable, Result, Text, IntWritable>.Context context)
+				throws IOException, InterruptedException {
+			
+			List<KeyValue> list = value.list();	
+			String count = Bytes.toString(list.get(0).getValue());
+			String rowkey = Bytes.toString(key.get()).trim();
+			String [] data = rowkey.split(rowkeyseparator, -1);
+			
+			db.insertToUsedDaysCount(Long.parseLong(data[0].trim()),data[1].trim(), Integer.valueOf(count));					
+		}	
+	}	
+	
 	
 	/**
 	 * 计数map
@@ -299,53 +386,7 @@ public class UserMapper {
 			}
 	}
 	
-	
-	
-	
-	/**
-	 * 根据指定一个月的时间段，筛选出这一天的数据
-	 */
-	public static class DataByTimeMap extends TableMapper<Text, IntWritable>{
-		private final static IntWritable one = new IntWritable(1);
-		private Text resultKey = new Text();
-		
-		@SuppressWarnings("deprecation")
-		@Override
-		protected void map(
-				ImmutableBytesWritable key,
-				Result value,
-				Mapper<ImmutableBytesWritable, Result, Text, IntWritable>.Context context)
-				throws IOException, InterruptedException {
-			 
-			String rowkey = Bytes.toString(key.get()).trim();			
-			String time = rowkey.substring(0, 13);
-//			log.info("~~current rowkey is " +rowkey + " and time is " + time);
-			//2015-01-01 00:00:00 到 2015-01-10 24:00:00
-			long st = 1420041600000l;
-			long et = 1420905600000l;
-			try {	
-				SimpleDateFormat sf =new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");	
-				
-				if(time.matches("[0-9]{1,}") && Long.parseLong(time) >= st && Long.parseLong(time) <= et){				
-					Date date2 =new Date(Long.parseLong(time));
-					
-						int day = sf.parse(sf.format(date2)).getDay();
-						
-						long curDays= st+(day*24*3600000);
-						
-						resultKey.set(String.valueOf(curDays)+rowkey.substring(13));					
-						context.write(resultKey,one);										
-				}
-			} catch (ParseException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		}
-		
-	}
-	
-	
-	
+
 	
 	
 //	/**

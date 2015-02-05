@@ -24,11 +24,14 @@ public class Driver {
 		config.setInt("min.num.spill.for.combine", 50);
 		config.setInt("mapreduce.job.maps", 100);
 		config.setBoolean("hbase.regionserver.restart.on.zk.expire", true);
-		config.set("hbase.regionserver.lease.period", "10000000");
+		config.set("hbase.client.scanner.timeout.period", "10000000");
 		config.setInt("mapreduce.reduce.merge.inmem.threshold", 0);
 		config.set("mapred.job.reduceinput.buffer.percent", "1.0");
 		config.set("hbase.zookeeper.property.maxClientCnxns", "500");
 		config.set("mapred.jobtracker.taskScheduler", "org.apache.hadoop.mapred.FairScheduler");
+		
+		//2.7
+//		config.set("zookeeper.znode.parent", "/hbase_wins");
 		return config;
 	}
 }

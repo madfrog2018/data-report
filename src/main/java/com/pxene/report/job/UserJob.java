@@ -1,7 +1,5 @@
 package com.pxene.report.job;
 
-import java.io.IOException;
-
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Scan;
@@ -20,15 +18,17 @@ import com.pxene.report.ReportMRHbase;
 import com.pxene.report.ReportMRHbase.COUNTERS;
 import com.pxene.report.map.UserMapper.AppAndCategoryMap;
 import com.pxene.report.map.UserMapper.AppUsedCountMap;
+import com.pxene.report.map.UserMapper.AppUsed_CountDays_JobMap;
+import com.pxene.report.map.UserMapper.AppUsed_DistinctDay_JobMap;
 import com.pxene.report.map.UserMapper.ConvertToMysql_appcategoryMap;
 import com.pxene.report.map.UserMapper.ConvertToMysql_appusedcountMap;
 import com.pxene.report.map.UserMapper.ConvertToMysql_deviceIdcountMap;
+import com.pxene.report.map.UserMapper.ConvertToMysql_usedDayscountMap;
 import com.pxene.report.map.UserMapper.CountMap;
-import com.pxene.report.map.UserMapper.DataByTimeMap;
 import com.pxene.report.map.UserMapper.DeviceIdCountMap;
-import com.pxene.report.map.UserMapper.DeviceIdCount_monthMap;
-import com.pxene.report.reduce.UserReducer.AppAndCategoryReduce;
-import com.pxene.report.reduce.UserReducer.DeviceIdCountReduce;
+import com.pxene.report.map.UserMapper.DeviceIdCount_weekMap;
+import com.pxene.report.reduce.UserReducer.DistinctReduce;
+import com.pxene.report.reduce.UserReducer.SumReduce;
 
 public class UserJob {
 	static Logger log = Logger.getLogger(UserJob.class);	
@@ -46,14 +46,14 @@ public class UserJob {
 		job.setJarByClass(ReportMRHbase.class);
 		job.setNumReduceTasks(3);
 		job.setMapperClass(AppAndCategoryMap.class);
-		job.setReducerClass(AppAndCategoryReduce.class);
+		job.setReducerClass(SumReduce.class);
 	
 		Scan scan = new Scan();			
 		QualifierFilter fi =new QualifierFilter(CompareOp.EQUAL, new RegexStringComparator("pid|cg|mpn"));				
 		scan.setFilter(fi);
 		
 		TableMapReduceUtil.initTableMapperJob(src_table_name, scan, AppAndCategoryMap.class,Text.class, IntWritable.class, job);
-		TableMapReduceUtil.initTableReducerJob(dist_table_name, AppAndCategoryReduce.class,job);
+		TableMapReduceUtil.initTableReducerJob(dist_table_name, SumReduce.class,job);
 				 
 		log.info("~~ Job configure complete  , waitForCompletion...");
 
@@ -95,14 +95,14 @@ public class UserJob {
 		job.setJarByClass(ReportMRHbase.class);
 		job.setNumReduceTasks(3);
 		job.setMapperClass(AppUsedCountMap.class);
-		job.setReducerClass(AppAndCategoryReduce.class);
+		job.setReducerClass(SumReduce.class);
 	
 		Scan scan = new Scan();			
 		QualifierFilter fi =new QualifierFilter(CompareOp.EQUAL, new RegexStringComparator("pid"));				
 		scan.setFilter(fi);
 		
 		TableMapReduceUtil.initTableMapperJob(src_table_name, scan, AppUsedCountMap.class,Text.class, IntWritable.class, job);
-		TableMapReduceUtil.initTableReducerJob(dist_table_name, AppAndCategoryReduce.class,job);
+		TableMapReduceUtil.initTableReducerJob(dist_table_name, SumReduce.class,job);
 				 
 		log.info("~~ Job configure complete  , waitForCompletion...");
 
@@ -136,44 +136,50 @@ public class UserJob {
 	
 	/**
 	 * 每周 /月 访问app的人数
+	 * 中间去重表 ： dsp_tanx_deviceId_distinct
 	 * 目标表：dsp_tanx_deviceId_count
 	 */
-	public static int DeviceIdCountJob(Configuration conf,String src_table_name,String dist_table_name) throws Exception{
-		//周
-//		Job week_job = Job.getInstance(conf, "dsp_tanx_deviceId_week_count table Job");
-//		week_job.setJarByClass(ReportMRHbase.class);
-//		week_job.setNumReduceTasks(3);
-//		week_job.setMapperClass(DeviceIdCountMap.class);
-//		week_job.setReducerClass(DeviceIdCountReduce.class);
-//	
+	public static int DeviceIdCountJob(Configuration conf,String src_table_name,String middle_table_name,String dist_table_name) throws Exception{
+		//周/月   distinct
+		Job distinct_job = Job.getInstance(conf, "dsp_tanx_deviceId_distinct_count table Job");
+		distinct_job.setJarByClass(ReportMRHbase.class);
+		distinct_job.setNumReduceTasks(3);
+		distinct_job.setMapperClass(DeviceIdCountMap.class);
+		distinct_job.setReducerClass(DistinctReduce.class);
+	
 		Scan scan = new Scan();			
 		QualifierFilter fi =new QualifierFilter(CompareOp.EQUAL, new RegexStringComparator("pid|mdid"));				
 		scan.setFilter(fi);
-//		
-//		TableMapReduceUtil.initTableMapperJob(src_table_name, scan, DeviceIdCountMap.class,Text.class, Text.class, week_job);
-//		TableMapReduceUtil.initTableReducerJob(dist_table_name, DeviceIdCountReduce.class,week_job);
-//				 
-//		log.info("~~ jobResult configure complete  , waitForCompletion...");
-//
-//		int week_jobResult = week_job.waitForCompletion(true) ? 0 : 1;
-//		log.info("~~ jobResult complete  status is "+ week_jobResult);
 		
-		//月
-		Job month_job = Job.getInstance(conf, "dsp_tanx_deviceId_month_count table Job");
-		month_job.setJarByClass(ReportMRHbase.class);
-		month_job.setNumReduceTasks(3);
-		month_job.setMapperClass(DeviceIdCount_monthMap.class);
-		month_job.setReducerClass(DeviceIdCountReduce.class);	
-		
-		TableMapReduceUtil.initTableMapperJob(src_table_name, scan, DeviceIdCount_monthMap.class,Text.class, Text.class, month_job);
-		TableMapReduceUtil.initTableReducerJob(dist_table_name, DeviceIdCountReduce.class,month_job);
+		TableMapReduceUtil.initTableMapperJob(src_table_name, scan, DeviceIdCountMap.class,Text.class, IntWritable.class, distinct_job);
+		TableMapReduceUtil.initTableReducerJob(middle_table_name, DistinctReduce.class,distinct_job);
 				 
-		log.info("~~ month_jobResult configure complete  , waitForCompletion...");
+		log.info("~~ jobResult configure complete  , waitForCompletion...");
+
+		int distinct_jobResult = distinct_job.waitForCompletion(true) ? 0 : 1;
+		log.info("~~ distinct_jobResult complete  status is "+ distinct_jobResult);
 		
-		int month_jobResult = month_job.waitForCompletion(true) ? 0 : 1;		
-		log.info("~~ month_jobResult complete  status is "+ month_jobResult);
 		
-		return month_jobResult;
+		//周/月 count 
+		Job count_job = Job.getInstance(conf, "dsp_tanx_deviceId_count table Job");
+		count_job.setJarByClass(ReportMRHbase.class);
+		count_job.setNumReduceTasks(3);
+		count_job.setMapperClass(DeviceIdCount_weekMap.class);
+		count_job.setReducerClass(SumReduce.class);
+		
+		Scan week_scan = new Scan();			
+		QualifierFilter fit =new QualifierFilter(CompareOp.EQUAL, new RegexStringComparator("count"));				
+		week_scan.setFilter(fit);
+			
+		TableMapReduceUtil.initTableMapperJob(middle_table_name, week_scan, DeviceIdCount_weekMap.class,Text.class, IntWritable.class, count_job);
+		TableMapReduceUtil.initTableReducerJob(dist_table_name, SumReduce.class,count_job);
+				 
+		log.info("~~ jobResult configure complete  , waitForCompletion...");
+
+		int count_jobResult = count_job.waitForCompletion(true) ? 0 : 1;
+		log.info("~~ count_jobResult complete  status is "+ count_jobResult);
+		
+		return count_jobResult;
 	}
 	
 	/**
@@ -197,6 +203,74 @@ public class UserJob {
 	}
 	
 	
+	/**
+	 * 每周/月 访问app的总天数
+	 * 中间去重表 ： dsp_tanx_usedDay_distinct
+	 * 目标表：dsp_tanx_usedDay_count
+	 */
+	public static int AppUsed_DaysCount_Job(Configuration conf,String src_table_name,String middle_table_name,String dist_table_name) throws Exception{
+		//周/月  distinct(去重复 同一个人 同一天 使用同一个app 记成一条记录)
+		Job distinct_job = Job.getInstance(conf, "dsp_tanx_distinct_days table Job");
+		distinct_job.setJarByClass(ReportMRHbase.class);
+		distinct_job.setNumReduceTasks(3);
+		distinct_job.setMapperClass(AppUsed_DistinctDay_JobMap.class);
+		distinct_job.setReducerClass(DistinctReduce.class);
+	
+		Scan scan = new Scan();			
+		QualifierFilter fi =new QualifierFilter(CompareOp.EQUAL, new RegexStringComparator("pid|mdid"));				
+		scan.setFilter(fi);
+		
+		TableMapReduceUtil.initTableMapperJob(src_table_name, scan, AppUsed_DistinctDay_JobMap.class,Text.class, IntWritable.class, distinct_job);
+		TableMapReduceUtil.initTableReducerJob(middle_table_name, DistinctReduce.class,distinct_job);
+				 
+		log.info("~~ distinct_job configure complete  , waitForCompletion...");
+
+		int distinct_jobResult = distinct_job.waitForCompletion(true) ? 0 : 1;
+		log.info("~~ distinct_jobResult complete  status is "+ distinct_jobResult);
+		
+		
+//		周/月  count(合并出一周 使用同一个app的个数 ，即是天数)
+		Job count_job = Job.getInstance(conf, "dsp_tanx_days_count table Job");
+		count_job.setJarByClass(ReportMRHbase.class);
+		count_job.setNumReduceTasks(3);
+		count_job.setMapperClass(AppUsed_CountDays_JobMap.class);
+		count_job.setReducerClass(SumReduce.class);
+	
+		Scan count_scan = new Scan();			
+		QualifierFilter fit =new QualifierFilter(CompareOp.EQUAL, new RegexStringComparator("count"));				
+		count_scan.setFilter(fit);
+		
+		TableMapReduceUtil.initTableMapperJob(middle_table_name, count_scan, AppUsed_CountDays_JobMap.class,Text.class, IntWritable.class, count_job);
+		TableMapReduceUtil.initTableReducerJob(dist_table_name, SumReduce.class,count_job);
+				 
+		log.info("~~ count_job configure complete  , waitForCompletion...");
+
+		int count_jobResult = count_job.waitForCompletion(true) ? 0 : 1;
+		log.info("~~ count_job complete  status is "+ count_jobResult);
+		
+		return count_jobResult;
+	}
+	
+	/**
+	 * 取出hbase中dsp_tanx_usedDay_count表数据，导入到mysql里
+	 */
+	public static int ConvertToMysql_usedDayscountJob (Configuration conf,String src_table_name) throws Exception{
+		Job job = Job.getInstance(conf, "Convert data To Mysql Job");
+		job.setJarByClass(ReportMRHbase.class);
+		job.setNumReduceTasks(3);
+		job.setMapperClass(ConvertToMysql_usedDayscountMap.class);
+		job.setOutputFormatClass(NullOutputFormat.class);
+		
+		Scan scan = new Scan();		  		 		    
+		QualifierFilter fi =new QualifierFilter(CompareOp.EQUAL, new RegexStringComparator("count"));				
+		scan.setFilter(fi);
+		TableMapReduceUtil.initTableMapperJob(src_table_name, scan, ConvertToMysql_usedDayscountMap.class, Text.class, IntWritable.class, job);
+		
+		int mysqlJob = job.waitForCompletion(true) ? 0 : 1;
+		log.info("~~current ConvertToMysqlJob counters are : " + job.getCounters().findCounter(COUNTERS.ROWS).getValue());
+		return mysqlJob;
+	}
+	
 	
 	/**
 	 * 计数job
@@ -215,7 +289,7 @@ public class UserJob {
 		scan.setFilter(fi);
 		TableMapReduceUtil.initTableMapperJob(src_table_name, scan, CountMap.class,ImmutableBytesWritable.class, KeyValue.class, job);
 		
-		log.info("~~ Job configure complete  , waitForCompletion...");
+		log.info("~~ countJob configure complete  , waitForCompletion...");
 
 		int jobResult = job.waitForCompletion(true) ? 0 : 1;
 		log.info("~~current countJob counters are : " + job.getCounters().findCounter(COUNTERS.ROWS).getValue());

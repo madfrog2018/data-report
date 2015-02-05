@@ -19,8 +19,7 @@ import org.apache.hadoop.util.ToolRunner;
  */
 public class ReportMRHbase extends Configured implements Tool{
 	
-	private static Configuration conf = Driver.config();
-	//HBaseHelper.getHBConfig("pxene01,pxene02,pxene03,pxene04,pxene05");
+	private static Configuration conf = HBaseHelper.getHBConfig("pxene01,pxene02,pxene03,pxene04,pxene05");//Driver.config();
 
 //	private static Configuration conf = HBaseHelper.getHBConfig("slave2,slave1,master");
 
@@ -38,13 +37,19 @@ public class ReportMRHbase extends Configured implements Tool{
 	@Override
 	public int run(String[] args) throws Exception {
 		String[] otherArgs = new GenericOptionsParser(conf, args).getRemainingArgs();
-		conf.set("mapred.child.java.opts", "-Xmx1024m");
+//		conf.set("mapred.child.java.opts", "-Xmx512m");
+//		conf.set("mapreduce.map.java.opts ","-Xmx3072m");
+//		conf.set("mapreduce.reduce.java.opts", "-Xmx6144m");	
+//		conf.set("yarn.nodemanager.vmem-pmem-ratio", "7.1");
+//		conf.set("yarn.scheduler.minimum-allocation-mb", "4096");
+//		conf.set("yarn.scheduler.maximum-allocation-mb", "24G");	
+//		conf.set("yarn.nodemanager.resource.memory-mb", "24G");
 		
-		String dist_table_name = otherArgs[otherArgs.length - 1];
-		String src_table_name = otherArgs[otherArgs.length - 2]; // "dsp_tanx_bidrequest_log";		
+//		String dist_table_name = otherArgs[otherArgs.length - 1];
+//		String src_table_name = otherArgs[otherArgs.length - 2]; // "dsp_tanx_bidrequest_log";		
 		
-		HBaseHelper Hhelper = HBaseHelper.getHelper(conf);
-		Hhelper.creatTable(dist_table_name,family);
+//		HBaseHelper Hhelper = HBaseHelper.getHelper(conf);
+//		Hhelper.creatTable(dist_table_name,family);
 		
 //		int jobResult = UserJob.AppAndCategoryJob (conf,src_table_name,dist_table_name);		
 //		log.info("~~current ExportDataJob status is : "+ jobResult);
@@ -61,27 +66,42 @@ public class ReportMRHbase extends Configured implements Tool{
 		//将appUsedCountJob结果导入到mysql中
 //		int ConToMysqlJob = UserJob.ConvertToMysql_appusedcountJob(conf, dist_table_name);
 //		log.info("~~current Convert data ToMysql Job status is : "+ ConToMysqlJob);
-	
-		//每周/月  访问app的人数（去重复）
-		int mdidCountJob = UserJob.DeviceIdCountJob(conf, src_table_name,dist_table_name);		
-		log.info("~~current mdidCountJob status is : "+ mdidCountJob);		
+
+//----------------------------------
+		
+		String dist_table_name = otherArgs[otherArgs.length - 1];
+//		String src_table_name = otherArgs[otherArgs.length - 3]; // "dsp_tanx_bidrequest_log";		
+//		String middle_table_name = otherArgs[otherArgs.length - 2];
+//		
+//		HBaseHelper Hhelper = HBaseHelper.getHelper(conf);
+//		Hhelper.creatTable(dist_table_name,family);
+//		Hhelper.creatTable(middle_table_name,family);
+
+		
+//		//每周/月  访问app的人数（去重复）
+//		int mdidCountJob = UserJob.DeviceIdCountJob(conf, src_table_name,middle_table_name,dist_table_name);		
+//		log.info("~~current mdidCountJob status is : "+ mdidCountJob);		
 		
 		//将mdidCountJob结果导入到mysql中
 //		int ConToMysqlJob = UserJob.ConvertToMysql_deviceIdcountJob(conf, dist_table_name);
-//		log.info("~~current Convert data ToMysql Job status is : "+ ConToMysqlJob);
-				
+//		log.info("~~current Convert data ToMysql Job status is : "+ ConToMysqlJob);				
+		
 		
 		//每周/月  人访问app的总天数sum
-//		int mdidCount_week_Job = UserJob.AppUsedCount_week_Job(conf, src_table_name,dist_table_name);		
-//		log.info("~~current mdidCount_week_Job status is : "+ mdidCount_week_Job);
+//		int appUsed_DaysCount_Job = UserJob.AppUsed_DaysCount_Job(conf, src_table_name,middle_table_name,dist_table_name);		
+//		log.info("~~current appUsed_DaysCount_Job status is : "+ appUsed_DaysCount_Job);		
+//		Hhelper.deleteTable(middle_table_name);
 		
+		//将appUsed_DaysCount_Job结果导入到mysql中
+		int ConToMysqlJob = UserJob.ConvertToMysql_usedDayscountJob(conf, dist_table_name);
+		log.info("~~current Convert data ToMysql Job status is : "+ ConToMysqlJob);
 		
+				
 		//----计数job
-		int countJob = UserJob.countJob(conf, dist_table_name);		
-		log.info("~~current countJob status is : "+ countJob);
-		
-		
-		return countJob;
+//		int countJob = UserJob.countJob(conf, dist_table_name);		
+//		log.info("~~current countJob status is : "+ countJob);
+				
+		return ConToMysqlJob;
 	}
 
 

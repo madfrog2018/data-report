@@ -80,7 +80,7 @@ public class Init {
 		DBUtil db = new DBUtil();
 //		db.insertToAppusedCount(1420074000000l, "1006", 5);			
 		
-		String sd="2015-01-05 00:00:00"; 
+		String sd="2014-12-21 00:00:00"; 
 		String sd2="2015-01-05";
 //		String sd3="2014-12-02 00:00:00";
 //		String sd4="2015-01-01 03:00:00";
@@ -95,7 +95,7 @@ public class Init {
 		Date date2 =new Date(1417449600000l);
 		SimpleDateFormat sf =new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 		SimpleDateFormat sf2 =new SimpleDateFormat("yyyy-MM-dd");
-//		System.out.println(sf.parse(sd).getTime()+"\n"+sf2.parse(sd2).getTime());//+"\n"+(sf.parse(sd3).getTime()-sf.parse(sd2).getTime()));
+		System.out.println(sf.parse(sd).getTime()+"\n"+sf2.parse(sd2).getTime());//+"\n"+(sf.parse(sd3).getTime()-sf.parse(sd2).getTime()));
 		
 //		System.out.println(sf.parse(sd).getTime()+"\n"+sf.parse(sd2).getTime()+"\n"+sf.parse(sd3).getTime()+"\n"+sf.parse(sd4).getTime()
 //				+"\n"+sf.parse(sd5).getTime()+"\n"+sf.parse(sd6).getTime()+"\n"+sf.parse(sd7).getTime()+"\n"+sf.parse(sd8).getTime()
@@ -107,7 +107,7 @@ public class Init {
 		Date d =new Date(Long.parseLong(t));
 		
 		long milltime = sf.parse(sf.format(date2)).getTime();
-		System.out.println(d+","+sf2.format(d));//Sat Jan 24 16:18:23 CST 2015
+//		System.out.println(d+","+sf2.format(d));//Sat Jan 24 16:18:23 CST 2015
 		
 		Long lg = 1418628093267l;
 //		Long lg =  0a67f5230000547f00a60366001e5a631417609382670l;//dsp_tanx_bidrequest_log
@@ -123,7 +123,7 @@ public class Init {
 //		System.out.println(rowKey.substring(32, rowKey.length()));
 //	  	creatTable("testn","br");
 //	  	addRecord("test_report", String.valueOf(1420089560000l), "br", new String [] {"cg"},new String [] {"60102"});
-//	  	deleteTable("dsp_tanx_bytime");
+//	  	deleteTable("dsp_tanx_deviceId_distinct");
 		
 //		Character prefix = 0x02;
 //		StringBuilder sb = new StringBuilder();
@@ -138,8 +138,7 @@ public class Init {
 //	  	getTanxColumn();
 		
 		String ss="1422087503570";
-		
-		convertWeekByDate(ss);
+//		convertWeekByDate(ss);
 	}
 	
 	private static void convertWeekByDate(String timestamp) throws ParseException {  	    		
