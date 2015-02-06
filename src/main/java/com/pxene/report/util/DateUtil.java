@@ -28,13 +28,11 @@ public class DateUtil {
         
         cal.setFirstDayOfWeek(Calendar.MONDAY);//设置一个星期的第一天，是星期一  
         int day = cal.get(Calendar.DAY_OF_WEEK);//获得当前日期是一个星期的第几天  
-        cal.add(Calendar.DATE, cal.getFirstDayOfWeek()-day);//根据日历的规则，给当前日期减去星期几与一个星期第一天的差值   
-//        String imptimeBegin = sdf.format(cal.getTime());  
-//        System.out.println("所在周星期一的日期："+imptimeBegin);  
+        cal.add(Calendar.DATE, cal.getFirstDayOfWeek()-day);//根据日历的规则，给当前日期减去星期几与一个星期第一天的差值     
+//        System.out.println("所在周星期一的日期："+sdf.format(cal.getTime());  
 
 //        cal.add(Calendar.DATE, 6);  
-//        String imptimeEnd = sdf.format(cal.getTime());  
-//        System.out.println("所在周星期日的日期："+imptimeEnd);  
+//        System.out.println("所在周星期日的日期："+sdf.format(cal.getTime()););  
         return Long.toString(cal.getTime().getTime());
 	}  
 	
@@ -44,7 +42,7 @@ public class DateUtil {
 	 * @throws ParseException
 	 */
 	public String convertMonthByTime(String timestamp) throws ParseException {  			
-        SimpleDateFormat sdf=new SimpleDateFormat("yyyy-MM-dd"); //设置时间格式           
+        SimpleDateFormat sdf=new SimpleDateFormat("yyyy-MM-dd"); 
         Date d =new Date(Long.parseLong(timestamp));       
         Date time = sdf.parse(sdf.format(d));    
         

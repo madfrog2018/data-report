@@ -31,6 +31,7 @@ public class UserMapper {
 	static DateUtil dateUtil  = new DateUtil();
 	
 	/** 
+	 * app和分类对应关系
 	 *rowkey = appId;appcategory;package (pid|cg|mpn) 
 	 */
 	public static class AppAndCategoryMap extends TableMapper<Text, IntWritable> {
@@ -96,14 +97,12 @@ public class UserMapper {
 			
 			db.insertToAppcategory(data[0].trim(),data[1].trim(), data[2].trim());
 			
-			context.getCounter(COUNTERS.ROWS).increment(1);
-			
 		}	
 	}
 	
 	
 	/**
-	 * 每天 每个appid 出现的次数
+	 * 每天 每个appid 出现使用的次数
 	 *time;pid
 	 */
 	public static class AppUsedCountMap extends TableMapper<Text, IntWritable>{
@@ -118,27 +117,21 @@ public class UserMapper {
 				throws IOException, InterruptedException {
 			
 			String rowKey =Bytes.toString(key.get());
-			List<KeyValue> list = value.list();	
 			String pidValue = "";
-			for (KeyValue kv : list) {
+			for (KeyValue kv : value.list()) {
 				String qu = Bytes.toString(kv.getQualifier());	
 				if(qu.equals("pid")){
 					pidValue = Bytes.toString(kv.getValue());	
 				}
 			}
-			String currentDay = "";
+			
 			if(rowKey.length()>32){
 				String time = rowKey.substring(32, rowKey.length()).trim();				
 				try {
 					if(time.matches("[0-9]{1,}")){	
-						SimpleDateFormat sf =new SimpleDateFormat("yyyy-MM-dd");	
-						Date d =new Date(Long.parseLong(time));
-						currentDay = Long.toString(sf.parse(sf.format(d)).getTime());	
-						
 						Text resultKey = new Text();
-						resultKey.set(currentDay+rowkeyseparator+pidValue);								
-						context.write(resultKey,one);
-						
+						resultKey.set(dateUtil.convertDayByTime(time)+rowkeyseparator+pidValue);								
+						context.write(resultKey,one);						
 					}
 				} catch (ParseException e) {
 						e.printStackTrace();
@@ -221,13 +214,19 @@ public class UserMapper {
 			}			
 		}
 	}	
+	
 	/**
-	 * 每周/月  访问每个app的人数
+	 * 1.每周/月  访问每个app的人数
 	 *key:time;pid
 	 *value:1
 	 *return：sum
+	 *或
+	 *
+	 *2.日使用人数
+	 *rowkey = time(每天的0点);appid
+	 *合并出一天 使用同一个app的个数 ，即是人数
 	 */
-	public static class DeviceIdCount_weekMap extends TableMapper<Text, IntWritable>{
+	public static class DeviceIdByTime_CountMap extends TableMapper<Text, IntWritable>{
 		private final static IntWritable one = new IntWritable(1);
 
 		@Override
@@ -243,8 +242,8 @@ public class UserMapper {
 			resultKey.set(keys[0]+rowkeyseparator+keys[1]);								
 			context.write(resultKey,one);			
 		}
-	}
-			
+	}	
+	
 	/**
 	 * 数据dsp_tanx_deviceId_count插入到mysql dsp_t_app_deviceId_count表里
 	 */
@@ -269,10 +268,12 @@ public class UserMapper {
 	
 	
 	/** 
+	 * (app使用天，日app使用人）
 	 *rowkey = time(一天的0点);appid;mdid
-	 *同app，同用户，同一天去重复次数
+	 *同app，同用户，
+	 *同一天去重复次数
 	 */
-	public static class AppUsed_DistinctDay_JobMap extends TableMapper<Text, IntWritable> {
+	public static class DistinctByDay_Map extends TableMapper<Text, IntWritable> {
 		private final static IntWritable one = new IntWritable(1);
 		
 		@SuppressWarnings("deprecation")
@@ -313,10 +314,11 @@ public class UserMapper {
 		}
 	}
 	/** 
+	 * app使用天数
 	 *rowkey = time(周一的0点);appid
 	 *合并出一周 使用同一个app的个数 ，即是天数
 	 */
-	public static class AppUsed_CountDays_JobMap extends TableMapper<Text, IntWritable> {
+	public static class AppUsed_CountDays_Map extends TableMapper<Text, IntWritable> {
 		private final static IntWritable one = new IntWritable(1);
 		
 		@Override
@@ -350,7 +352,7 @@ public class UserMapper {
 	/**
 	 * 数据dsp_tanx_deviceId_count插入到mysql dsp_t_app_deviceId_count表里
 	 */
-	public static class ConvertToMysql_usedDayscountMap extends TableMapper<Text, IntWritable>{
+	public static class ConvertToMysql_useddayscountMap extends TableMapper<Text, IntWritable>{
 				
 		@SuppressWarnings("deprecation")
 		@Override
@@ -369,6 +371,29 @@ public class UserMapper {
 		}	
 	}	
 	
+				
+	/**
+	 * 数据dsp_tanx_deviceIdByDay_count插入到mysql dsp_t_app_deviceIdByDay_count表里
+	 */
+	public static class ConvertToMysql_deviceIdcountbydayMap extends TableMapper<Text, IntWritable>{
+				
+		@SuppressWarnings("deprecation")
+		@Override
+		protected void map(
+				ImmutableBytesWritable key,
+				Result value,
+				Mapper<ImmutableBytesWritable, Result, Text, IntWritable>.Context context)
+				throws IOException, InterruptedException {
+			
+			List<KeyValue> list = value.list();	
+			String count = Bytes.toString(list.get(0).getValue());
+			String rowkey = Bytes.toString(key.get()).trim();
+			String [] data = rowkey.split(rowkeyseparator, -1);
+			
+			db.insertToDeviceIdByDayCount(Long.parseLong(data[0].trim()),data[1].trim(), Integer.valueOf(count));					
+		}	
+	}
+	
 	
 	/**
 	 * 计数map
@@ -386,7 +411,7 @@ public class UserMapper {
 			}
 	}
 	
-
+	
 	
 	
 //	/**

@@ -88,20 +88,35 @@ public class ReportMRHbase extends Configured implements Tool{
 		
 		
 		//每周/月  人访问app的总天数sum
-//		int appUsed_DaysCount_Job = UserJob.AppUsed_DaysCount_Job(conf, src_table_name,middle_table_name,dist_table_name);		
+//		int appUsed_DaysCount_Job = UserJob.AppUsedDaysCountJob(conf, src_table_name,middle_table_name,dist_table_name);		
 //		log.info("~~current appUsed_DaysCount_Job status is : "+ appUsed_DaysCount_Job);		
 //		Hhelper.deleteTable(middle_table_name);
 		
 		//将appUsed_DaysCount_Job结果导入到mysql中
-		int ConToMysqlJob = UserJob.ConvertToMysql_usedDayscountJob(conf, dist_table_name);
+//		int ConToMysqlJob = UserJob.ConvertToMysql_useddayscountJob(conf, dist_table_name);
+//		log.info("~~current Convert data ToMysql Job status is : "+ ConToMysqlJob);
+		
+		
+//------------------------------------
+		
+		//日 访问app人数
+//		int mdidCountByDay_Job = UserJob.DeviceIdCountByDayJob(conf, src_table_name,middle_table_name,dist_table_name);		
+//		log.info("~~current mdidCountByDayJob status is : "+ mdidCountByDay_Job);	
+				
+		//将mdidCountByDay_Job结果导入到mysql中
+		int ConToMysqlJob = UserJob.ConvertToMysql_deviceIdCountByDayJob(conf, dist_table_name);
 		log.info("~~current Convert data ToMysql Job status is : "+ ConToMysqlJob);
 		
+		
+		//删除中间表
+//		Hhelper.deleteTable(middle_table_name);
 				
+		
 		//----计数job
-//		int countJob = UserJob.countJob(conf, dist_table_name);		
-//		log.info("~~current countJob status is : "+ countJob);
+		int countJob = UserJob.countJob(conf, dist_table_name);		
+		log.info("~~current countJob status is : "+ countJob);
 				
-		return ConToMysqlJob;
+		return countJob;
 	}
 
 

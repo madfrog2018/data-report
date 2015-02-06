@@ -88,7 +88,7 @@ public class DBUtil {
 		PreparedStatement  pstmt = null;
         try {
 			conn.setAutoCommit(false);
-			String sql = "insert into dsp_t_app_used_count (appId,time,count) values (?,?,?)";
+			String sql = "insert into dsp_t_app_usedByDay_count (appId,time,count) values (?,?,?)";
 			pstmt =  conn.prepareStatement(sql);
 			pstmt.setString(1, appId);
 			pstmt.setLong(2, time);
@@ -187,7 +187,41 @@ public class DBUtil {
 		}
 	}
 	
-	
+	/**
+	 * 日使用人数
+	 * dsp_t_app_deviceIdByDay_count
+	 */
+	public  void insertToDeviceIdByDayCount(long time,String appId,int count){
+		Connection conn =getConnection();
+		PreparedStatement  pstmt = null;
+        try {
+			conn.setAutoCommit(false);
+			String sql = "insert into dsp_t_app_deviceIdByDay_count (appId,time,count) values (?,?,?)";
+			pstmt =  conn.prepareStatement(sql);
+			pstmt.setString(1, appId);
+			pstmt.setLong(2, time);
+			pstmt.setInt(3, count);
+			
+			int res = pstmt.executeUpdate();
+			if(res == 0){
+				log.info("~~ insert error row is :"+ time+"-"+appId+"-"+count);
+			}
+	        conn.commit();
+	        pstmt.close();
+		} catch (SQLException e) {
+			
+			e.printStackTrace();
+			log.info("SQLException  ===:"+ e.getMessage());
+			
+		}finally{
+			 try {
+				conn.close();
+			} catch (SQLException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+	}
 	
 	
 }
