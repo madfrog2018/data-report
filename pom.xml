@@ -106,7 +106,7 @@
 					<!-- <descriptor>src/main/resources/assembly.xml</descriptor> -->
 					<archive>
 						<manifest>
-							<mainClass>com.pxene.report.ReportMRHbase</mainClass>
+							<mainClass>com.pxene.hbase.DeleteRows</mainClass>
 						</manifest>
 					</archive>
 				</configuration>
