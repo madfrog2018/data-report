@@ -11,6 +11,7 @@ import org.apache.log4j.Logger;
 public class DBUtil {
 	private static Logger log = Logger.getLogger(DBUtil.class);
 	
+	private final static String month = "month";
 	/**
 	 * 得到数据库连接
 	 * @return	conn
@@ -119,12 +120,18 @@ public class DBUtil {
 	 * app使用人数表
 	 * appId;time;count
 	 */
-	public  void insertToDeviceIdCount(long time,String appId,int count){
+	public  void insertToDeviceIdCount(long time,String appId,int count,String type){
 		Connection conn =getConnection();
 		PreparedStatement  pstmt = null;
         try {
 			conn.setAutoCommit(false);
-			String sql = "insert into dsp_t_app_deviceId_count (appId,time,count) values (?,?,?)";
+			
+			//默认是周
+			String sql = "insert into dsp_t_app_deviceId_week_count (appId,time,count) values (?,?,?)";
+			if(type.equals(month)){
+				sql = "insert into dsp_t_app_deviceId_month_count (appId,time,count) values (?,?,?)";
+			}
+			
 			pstmt =  conn.prepareStatement(sql);
 			pstmt.setString(1, appId);
 			pstmt.setLong(2, time);
@@ -155,12 +162,16 @@ public class DBUtil {
 	 * app使用天数表
 	 * dsp_t_app_usedDays_count
 	 */
-	public  void insertToUsedDaysCount(long time,String appId,int count){
+	public  void insertToUsedDaysCount(long time,String appId,int count,String type){
 		Connection conn =getConnection();
 		PreparedStatement  pstmt = null;
         try {
 			conn.setAutoCommit(false);
-			String sql = "insert into dsp_t_app_usedDays_count (appId,time,count) values (?,?,?)";
+			//默认是周
+			String sql = "insert into dsp_t_app_usedDays_week_count (appId,time,count) values (?,?,?)";
+			if(type.equals(month)){
+				sql = "insert into dsp_t_app_usedDays_month_count (appId,time,count) values (?,?,?)";
+			}
 			pstmt =  conn.prepareStatement(sql);
 			pstmt.setString(1, appId);
 			pstmt.setLong(2, time);

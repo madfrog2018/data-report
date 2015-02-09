@@ -25,6 +25,7 @@ import com.pxene.report.map.UserMapper.ConvertToMysql_deviceIdcountMap;
 import com.pxene.report.map.UserMapper.ConvertToMysql_deviceIdcountbydayMap;
 import com.pxene.report.map.UserMapper.ConvertToMysql_useddayscountMap;
 import com.pxene.report.map.UserMapper.CountMap;
+import com.pxene.report.map.UserMapper.DeviceIdByDay_CountMap;
 import com.pxene.report.map.UserMapper.DeviceIdByTime_CountMap;
 import com.pxene.report.map.UserMapper.DeviceIdCountMap;
 import com.pxene.report.map.UserMapper.DistinctByDay_Map;
@@ -303,14 +304,14 @@ public class UserJob {
 		Job count_job = Job.getInstance(conf, "dsp_tanx_days_count table Job");
 		count_job.setJarByClass(ReportMRHbase.class);
 		count_job.setNumReduceTasks(3);
-		count_job.setMapperClass(DeviceIdByTime_CountMap.class);
+		count_job.setMapperClass(DeviceIdByDay_CountMap.class);
 		count_job.setReducerClass(SumReduce.class);
 	
 		Scan count_scan = new Scan();			
 		QualifierFilter fit =new QualifierFilter(CompareOp.EQUAL, new RegexStringComparator("count"));				
 		count_scan.setFilter(fit);
 		
-		TableMapReduceUtil.initTableMapperJob(middle_table_name, count_scan, DeviceIdByTime_CountMap.class,Text.class, IntWritable.class, count_job);
+		TableMapReduceUtil.initTableMapperJob(middle_table_name, count_scan, DeviceIdByDay_CountMap.class,Text.class, IntWritable.class, count_job);
 		TableMapReduceUtil.initTableReducerJob(dist_table_name, SumReduce.class,count_job);
 				 
 		log.info("~~ count_job configure complete  , waitForCompletion...");

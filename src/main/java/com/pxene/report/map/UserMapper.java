@@ -26,6 +26,8 @@ public class UserMapper {
 	
 	private final static Character cgseparator = 0x01;
 	private final static String rowkeyseparator = ";";
+	private final static String week = "week";
+	private final static String month = "month";
 	
 	static DBUtil db = new DBUtil();
 	static DateUtil dateUtil  = new DateUtil();
@@ -166,7 +168,7 @@ public class UserMapper {
 	
 	/**
 	 * 每周/月  访问每个app的人
-	 *key:time;pid;mdid
+	 *key:time;week/month;pid;mdid
 	 *value:1
 	 *return：去重复
 	 */
@@ -199,12 +201,12 @@ public class UserMapper {
 					if(time.matches("[0-9]{1,}")){
 						//周
 						Text resultKey = new Text();
-						resultKey.set(dateUtil.convertWeekByTime(time)+rowkeyseparator+pidValue+rowkeyseparator+Bytes.toBytes(mdidValue));								
+						resultKey.set(dateUtil.convertWeekByTime(time)+rowkeyseparator+week+rowkeyseparator+pidValue+rowkeyseparator+Bytes.toBytes(mdidValue));								
 						context.write(resultKey,one);	
 						
 						//月
 						Text resultKey2 = new Text();
-						resultKey2.set(dateUtil.convertMonthByTime(time)+rowkeyseparator+pidValue+rowkeyseparator+Bytes.toBytes(mdidValue));								
+						resultKey2.set(dateUtil.convertMonthByTime(time)+rowkeyseparator+month+rowkeyseparator+pidValue+rowkeyseparator+Bytes.toBytes(mdidValue));								
 						context.write(resultKey2,one);
 						
 					}
@@ -217,14 +219,9 @@ public class UserMapper {
 	
 	/**
 	 * 1.每周/月  访问每个app的人数
-	 *key:time;pid
+	 *key:time;week/month;pid
 	 *value:1
-	 *return：sum
-	 *或
-	 *
-	 *2.日使用人数
-	 *rowkey = time(每天的0点);appid
-	 *合并出一天 使用同一个app的个数 ，即是人数
+	 *return：sum	 
 	 */
 	public static class DeviceIdByTime_CountMap extends TableMapper<Text, IntWritable>{
 		private final static IntWritable one = new IntWritable(1);
@@ -239,7 +236,7 @@ public class UserMapper {
 			String [] keys = (Bytes.toString(key.get())).split(rowkeyseparator, -1);
 		
 			Text resultKey = new Text();
-			resultKey.set(keys[0]+rowkeyseparator+keys[1]);								
+			resultKey.set(keys[0]+rowkeyseparator+keys[1]+rowkeyseparator+keys[2]);								
 			context.write(resultKey,one);			
 		}
 	}	
@@ -262,7 +259,7 @@ public class UserMapper {
 			String rowkey = Bytes.toString(key.get()).trim();
 			String [] data = rowkey.split(rowkeyseparator, -1);
 			
-			db.insertToDeviceIdCount(Long.parseLong(data[0].trim()),data[1].trim(), Integer.valueOf(count));					
+			db.insertToDeviceIdCount(Long.parseLong(data[0].trim()),data[2].trim(), Integer.valueOf(count),data[1].trim());					
 		}	
 	}		
 	
@@ -315,7 +312,7 @@ public class UserMapper {
 	}
 	/** 
 	 * app使用天数
-	 *rowkey = time(周一的0点);appid
+	 *rowkey = time(周一的0点);week/month;appid
 	 *合并出一周 使用同一个app的个数 ，即是天数
 	 */
 	public static class AppUsed_CountDays_Map extends TableMapper<Text, IntWritable> {
@@ -334,16 +331,15 @@ public class UserMapper {
 				if(keys[0].matches("[0-9]{1,}")){	
 					//周
 					Text resultKey = new Text();
-					resultKey.set(dateUtil.convertWeekByTime(keys[0])+rowkeyseparator+keys[1]);				
+					resultKey.set(dateUtil.convertWeekByTime(keys[0])+rowkeyseparator+week+rowkeyseparator+keys[1]);				
 					context.write(resultKey,one);
 					
 					//月
 					Text resultKey2 = new Text();
-					resultKey2.set(dateUtil.convertMonthByTime(keys[0])+rowkeyseparator+keys[1]);				
+					resultKey2.set(dateUtil.convertMonthByTime(keys[0])+rowkeyseparator+month+rowkeyseparator+keys[1]);				
 					context.write(resultKey2,one);
 				}
 			} catch (ParseException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}	
 		}
@@ -367,11 +363,32 @@ public class UserMapper {
 			String rowkey = Bytes.toString(key.get()).trim();
 			String [] data = rowkey.split(rowkeyseparator, -1);
 			
-			db.insertToUsedDaysCount(Long.parseLong(data[0].trim()),data[1].trim(), Integer.valueOf(count));					
+			db.insertToUsedDaysCount(Long.parseLong(data[0].trim()),data[2].trim(), Integer.valueOf(count),data[1].trim());					
 		}	
 	}	
 	
-				
+	/**日使用人数
+	 *rowkey = time(每天的0点);appid
+	 *合并出一天 使用同一个app的个数 ，即是人数
+	 */
+	public static class DeviceIdByDay_CountMap extends TableMapper<Text, IntWritable>{
+		private final static IntWritable one = new IntWritable(1);
+
+		@Override
+		protected void map(
+				ImmutableBytesWritable key,
+				Result value,
+				Mapper<ImmutableBytesWritable, Result, Text, IntWritable>.Context context)
+				throws IOException, InterruptedException {		
+			
+			String [] keys = (Bytes.toString(key.get())).split(rowkeyseparator, -1);
+		
+			Text resultKey = new Text();
+			resultKey.set(keys[0]+rowkeyseparator+keys[1]);								
+			context.write(resultKey,one);			
+		}
+	}		
+	
 	/**
 	 * 数据dsp_tanx_deviceIdByDay_count插入到mysql dsp_t_app_deviceIdByDay_count表里
 	 */
