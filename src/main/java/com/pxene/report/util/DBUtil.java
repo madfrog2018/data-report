@@ -1,12 +1,11 @@
 package com.pxene.report.util;
 
+import org.apache.log4j.Logger;
+
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.sql.Statement;
-
-import org.apache.log4j.Logger;
 
 public class DBUtil {
 	private static Logger log = Logger.getLogger(DBUtil.class);
@@ -47,12 +46,12 @@ public class DBUtil {
 	 * app app分类关系表
 	 * appId;appcategory;package
 	 */
-	public  void insertToAppcategory(String appId,String catcode,String apppackage){
+	public  void insertToAppcategory(String appId,String catcode,String apppackage, String tableName){
 		Connection conn =getConnection();
 		PreparedStatement  pstmt = null;
         try {
 			conn.setAutoCommit(false);
-			String sql = "insert into dsp_t_app_category(appId,catcode,apppackage) values (?,?,?)";
+			String sql = "insert into "+ tableName +"(appId,catcode,apppackage) values (?,?,?)";
 			pstmt =  conn.prepareStatement(sql);
 			pstmt.setString(1, appId);
 			pstmt.setString(2, catcode);
@@ -84,12 +83,12 @@ public class DBUtil {
 	 * app使用次数表
 	 * appId;time;count
 	 */
-	public  void insertToAppusedCount(long time,String appId,int count){
+	public  void insertToAppusedCount(long time,String appId,int count, String tableName){
 		Connection conn =getConnection();
 		PreparedStatement  pstmt = null;
         try {
 			conn.setAutoCommit(false);
-			String sql = "insert into dsp_t_app_usedByDay_count (appId,time,count) values (?,?,?)";
+			String sql = "insert into "+ tableName +" (appId,time,count) values (?,?,?)";
 			pstmt =  conn.prepareStatement(sql);
 			pstmt.setString(1, appId);
 			pstmt.setLong(2, time);
@@ -120,23 +119,24 @@ public class DBUtil {
 	 * app使用人数表
 	 * appId;time;count
 	 */
-	public  void insertToDeviceIdCount(long time,String appId,int count,String type){
+	public  void insertToDeviceIdCount(long time,String appId,int count,String type, String weekTableName,
+                                       String monthTableName){
 		Connection conn =getConnection();
 		PreparedStatement  pstmt = null;
         try {
 			conn.setAutoCommit(false);
 			
 			//默认是周
-			String sql = "insert into dsp_t_app_deviceId_week_count (appId,time,count) values (?,?,?)";
+			String sql = "insert into "+ weekTableName +" (appId,time,count) values (?,?,?)";
 			if(type.equals(month)){
-				sql = "insert into dsp_t_app_deviceId_month_count (appId,time,count) values (?,?,?)";
+				sql = "insert into "+ monthTableName +" (appId,time,count) values (?,?,?)";
 			}
 			
 			pstmt =  conn.prepareStatement(sql);
 			pstmt.setString(1, appId);
 			pstmt.setLong(2, time);
 			pstmt.setInt(3, count);
-			
+
 			int res = pstmt.executeUpdate();
 			if(res == 0){
 				log.info("~~ insert error row is :"+ time+"-"+appId+"-"+count);

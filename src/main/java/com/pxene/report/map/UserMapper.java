@@ -1,11 +1,8 @@
 package com.pxene.report.map;
 
-import java.io.IOException;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.List;
-
+import com.pxene.report.ReportMRHbase.COUNTERS;
+import com.pxene.report.util.DBUtil;
+import com.pxene.report.util.DateUtil;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
@@ -16,9 +13,9 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.log4j.Logger;
 
-import com.pxene.report.ReportMRHbase.COUNTERS;
-import com.pxene.report.util.DBUtil;
-import com.pxene.report.util.DateUtil;
+import java.io.IOException;
+import java.text.ParseException;
+import java.util.List;
 
 public class UserMapper {
 
@@ -97,7 +94,7 @@ public class UserMapper {
 			String rowkey = Bytes.toString(key.get()).trim();
 			String [] data = rowkey.split(rowkeyseparator, -1);
 			
-			db.insertToAppcategory(data[0].trim(),data[1].trim(), data[2].trim());
+			db.insertToAppcategory(data[0].trim(),data[1].trim(), data[2].trim(), "dsp_t_app_category");
 			
 		}	
 	}
@@ -161,7 +158,8 @@ public class UserMapper {
 			String rowkey = Bytes.toString(key.get()).trim();
 			String [] data = rowkey.split(rowkeyseparator, -1);
 			
-			db.insertToAppusedCount(Long.parseLong(data[0].trim()),data[1].trim(), Integer.valueOf(count));									
+			db.insertToAppusedCount(Long.parseLong(data[0].trim()),data[1].trim(), Integer.valueOf(count),
+                    "dsp_t_app_usedByDay_count");
 		}	
 	}
 	
@@ -259,7 +257,8 @@ public class UserMapper {
 			String rowkey = Bytes.toString(key.get()).trim();
 			String [] data = rowkey.split(rowkeyseparator, -1);
 			
-			db.insertToDeviceIdCount(Long.parseLong(data[0].trim()),data[2].trim(), Integer.valueOf(count),data[1].trim());					
+			db.insertToDeviceIdCount(Long.parseLong(data[0].trim()),data[2].trim(),
+                    Integer.valueOf(count),data[1].trim(), "dsp_t_app_deviceId_week_count", "dsp_t_app_deviceId_month_count");
 		}	
 	}		
 	

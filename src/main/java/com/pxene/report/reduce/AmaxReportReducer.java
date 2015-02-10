@@ -15,6 +15,8 @@ import java.io.IOException;
  */
 public class AmaxReportReducer {
 
+    private static final String family = "br";
+
     /**
      * reduce:sum
      * rowkey = appId;appcategory;package
@@ -42,5 +44,26 @@ public class AmaxReportReducer {
             context.write(key, putrow);
         }
 
+    }
+
+    /**
+     * reduce:distinct
+     * rowkey = time;pid;mdid
+     * count:1
+     *
+     */
+    public static class DistinctReduce extends TableReducer<Text, IntWritable, Text> {
+        private IntWritable one = new IntWritable(1);
+
+        @Override
+        protected void reduce(Text key, Iterable<IntWritable> value,
+                              Reducer<Text, IntWritable, Text, Mutation>.Context context)
+                throws IOException, InterruptedException {
+
+            Put putrow = new Put(key.getBytes());
+            putrow.add(Bytes.toBytes(family), Bytes.toBytes("count"),  Bytes.toBytes(one.toString()));
+
+            context.write(key, putrow);
+        }
     }
 }

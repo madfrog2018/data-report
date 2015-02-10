@@ -25,6 +25,8 @@ public class AmaxReportMR extends Configured implements Tool{
         Options opts = new Options();
         Option amaxAppAndCategoryOpt = OptionBuilder.withArgName("amaxAppAndCategory").hasArg()
                 .withDescription("get amax app and category info").create("amaxAppAndCategoryOpt");
+        Option saveAmaxAppAndCategoryToMysqlOpt = OptionBuilder.withArgName("saveAmaxAppAndCategoryToMysql").hasArg()
+                .withDescription("save amax app and category info to mysql").create("saveAmaxAppAndCategoryToMysqlOpt");
 
         Option amaxSrcTableNameOpt = OptionBuilder.withArgName("amaxSrcTableName").hasArg()
                 .withDescription("amax app and category src table name").create("amaxSrcTableNameOpt");
@@ -35,6 +37,7 @@ public class AmaxReportMR extends Configured implements Tool{
         opts.addOption(amaxAppAndCategoryOpt);
         opts.addOption(amaxSrcTableNameOpt);
         opts.addOption(amaxDistTableNameOpt);
+        opts.addOption(saveAmaxAppAndCategoryToMysqlOpt);
 
         String formatstr = "AmaxReportMR --amaxAppAndCategory --amaxSrcTableName --amaxDistTableName";
         CommandLineParser parser = new PosixParser();
@@ -51,8 +54,17 @@ public class AmaxReportMR extends Configured implements Tool{
         if (cl.hasOption("amaxAppAndCategory")) {
             String srcTableName = cl.getOptionValue("amaxSrcTableName");
             String distTableName = cl.getOptionValue("amaxDistTableName");
-            int appCategoryResult = AmaxReportJob.AppAndCategoryJob(conf, srcTableName, distTableName);
-            return appCategoryResult;
+            return AmaxReportJob.AppAndCategoryJob(conf, srcTableName, distTableName);
+        }
+
+        if (cl.hasOption("saveAmaxAppAndCategoryToMysql")) {
+
+            String srcTableName = cl.getOptionValue("amaxDistTableName");
+            return AmaxReportJob.SaveToMysql_appcategoryJob(conf, srcTableName);
+        }
+
+        if (cl.hasOption("")) {
+
         }
         return 0;
     }

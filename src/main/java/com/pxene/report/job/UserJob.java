@@ -100,7 +100,7 @@ public class UserJob {
 		job.setReducerClass(SumReduce.class);
 	
 		Scan scan = new Scan();			
-		QualifierFilter fi =new QualifierFilter(CompareOp.EQUAL, new RegexStringComparator("pid"));				
+		QualifierFilter fi =new QualifierFilter(CompareOp.EQUAL, new RegexStringComparator("aid"));
 		scan.setFilter(fi);
 		
 		TableMapReduceUtil.initTableMapperJob(src_table_name, scan, AppUsedCountMap.class,Text.class, IntWritable.class, job);
